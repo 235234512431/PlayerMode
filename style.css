@@ -62,3 +62,24 @@ body.playermode-active #send_textarea {
 body.playermode-active #rightSendForm {
     flex: 0 0 auto !important;
 }
+
+/* Extension-owned password dialog, available in both modes. */
+.playermode-dialog {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    width: min(420px, calc(100vw - 32px));
+    max-height: calc(100dvh - 32px);
+    overflow: auto;
+    padding: 24px;
+    border: 1px solid #818b99;
+    border-radius: 12px;
+    background: #20242b;
+    color: #fff;
+    z-index: 2147483647;
+}
+.playermode-dialog::backdrop { background: rgb(0 0 0 / 65%); }
+.playermode-dialog form { display: flex; flex-direction: column; gap: 12px; }
+.playermode-dialog input { width: 100%; box-sizing: border-box; padding: 10px; background: #10141b; color: #fff; border: 1px solid #818b99; border-radius: 4px; }
+.playermode-dialog button { padding: 8px; cursor: pointer; }
+.playermode-dialog [role="alert"] { color: #ffb5b5; margin: 0; }
