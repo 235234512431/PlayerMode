@@ -1,88 +1,88 @@
-# PlayerMode
+# PlayerMode 0.2.0
 
-PlayerMode 是 SillyTavern 的独立第三方 UI 扩展：用 CSS 将当前聊天简化为玩家界面，全部生成与保存仍由 SillyTavern 原生完成。
+PlayerMode 是 SillyTavern 的独立第三方 UI 扩展：简化当前聊天界面，生成、世界书、Preset、正则与保存全部由 SillyTavern 原生负责。
 
-## 安装方式
+## 网页安装与更新
 
-本交付未自动安装、启动服务或修改任何 SillyTavern 文件。请先检查代码。
+在 SillyTavern → 扩展 → 安装扩展中填写：
 
-手动安装时，把整个 `PlayerMode` 文件夹复制到以下位置之一，不覆盖已有同名目录：
+```text
+https://github.com/235234512431/PlayerMode
+```
 
-- 全局：`SillyTavern/public/scripts/extensions/third-party/PlayerMode/`
-- 当前用户：`SillyTavern/data/<用户标识>/extensions/PlayerMode/`（自定义 dataRoot 时使用实际数据目录）。
+安装完成后重新加载页面。已安装旧版本时，在扩展管理中更新 PlayerMode，再重新加载。本目录的 manifest.json 必须位于仓库根目录，无构建步骤、无新增 npm 依赖。
 
-不要两处重复安装。`manifest.json` 应直接位于 `PlayerMode` 内，不能多嵌套一层。然后自行重新加载浏览器页面，在扩展管理中确认已启用；服务器必须已允许第三方扩展。
+手动安装也可以：把 PlayerMode 文件夹复制到 `SillyTavern/public/scripts/extensions/third-party/PlayerMode/` 或实际数据目录的 `<用户标识>/extensions/PlayerMode/`，不要重复安装或覆盖已有同名目录。不要修改宿主源码、角色卡或配置。
 
-网页安装：在 SillyTavern 的扩展 → 安装扩展中填写 `https://github.com/235234512431/PlayerMode`，安装完成后重新加载页面。本仓库根目录直接包含扩展入口文件。
+## 默认开启与密码设置
 
-## 开启方式
+1. 首次安装或从 0.1.0 更新后，先在普通 UI 确认角色、聊天、世界书和 API 已配置。
+2. 点击右上角“PlayerMode · 开启”，首次会要求设置至少 8 个字符的退出密码并输入两次。
+3. 开启后，当前浏览器记住 ON 状态；以后刷新或重新打开同一站点，会在 SillyTavern APP_READY 后自动开启。
+4. 退出验证通过后会记住 OFF；下次开启会再次记住 ON。
+5. 普通模式下可点“设置退出密码”更改密码。密码设置取消或存储失败时不会开启。
 
-先在普通界面选好角色、聊天、世界书、Preset 和 API，确认原生聊天正常，再点击右上角 `PlayerMode OFF · 开启`。
+仅当前浏览器、当前站点生效，不会同步到朋友的浏览器、其他设备或无痕窗口。同源的 SillyTavern 账号共用这份浏览器设置。初始化到 APP_READY 之前可能短暂显示原界面。
 
-ON 后主要保留历史消息、原生输入框、发送按钮，以及生成中的原生停止按钮。当前聊天 DOM 不被移动、克隆或替换。开关不会刷新页面，不会清空输入或中断生成。
+## 新对话
 
-## 关闭方式与应急恢复
+极简模式顶部保留“新对话”按钮，触发原生 `#option_start_new_chat` 点击流程，保留原生确认与生成状态检查，不自行创建/清空/保存聊天。当前角色或群组由宿主管理。
 
-- 点击右上角 `PlayerMode ON · 退出`，立即去掉全部 PlayerMode 样式覆盖。
-- 按 `Ctrl+Shift+P` 强制关闭（焦点须在主页面，嵌入 iframe 或浏览器快捷键拦截可能影响该方式）。
-- 重新加载页面默认 OFF。开关仅存内存，不使用 LocalStorage、不写用户设置。
-- 应急：在地址查询参数中加 `?playermode=0` 后重新加载；已有查询参数则加 `&playermode=0`，放在 `#` 片段之前。安全模式下禁止开启，移除此参数并重新加载才可再开启。重新加载前注意原生页面尚未保存的输入。
+原生确认框可能包含“删除当前聊天”选项；如果要保留旧聊天，不要勾选它。生成中能否开始新对话遵循 SillyTavern 原生限制。
 
-退出按钮有独立的内联基础样式，即使扩展 CSS 没有加载也能显示。所有宿主 CSS 覆盖都以 `body.playermode-active` 开头；去掉此 class 即恢复原生样式。没有保存或覆盖宿主原来的 style、class、面板状态。
+## 退出与忘记密码
 
-## 删除方式
+- 点击“PlayerMode · 退出”，输入正确密码后恢复普通界面。
+- `Ctrl+Shift+P` 同样要求密码；取消、Escape 或错误密码都不会退出。
+- **不再支持 `?playermode=0` 免密码恢复。**
+- 忘记密码时，禁用 PlayerMode 扩展并重新加载。若当前界面无法进入扩展管理，手动把安装目录移出扩展扫描目录，然后重新加载。无需修改任何宿主文件。
+- 卸载/禁用不自动删除浏览器偏好；重新安装可能恢复之前的 ON 状态。需要重置时，在该站点的浏览器开发者工具 → Application/存储 → Local Storage 中，仅删除 `PlayerMode.preferences.v1`，不要清空整个站点存储。移回/重新启用扩展后刷新即可重新设置。
 
-先关闭 PlayerMode，再在扩展管理中禁用，或手动删除安装的 `PlayerMode` 目录，然后重新加载浏览器页面。已经加载到浏览器中的 JS/CSS 不会因磁盘目录被删除而自动消失，因此需要重新加载。没有额外配置、数据文件或存储键需要清理。
+这只是防止随手退出的浏览器 UI 密码，不是登录或权限控制。能使用开发者工具、清理存储、禁用扩展的人仍可绕过；不适合作为远程访客的安全隔离。不要使用重要账号的密码。
 
-## 当前功能
+## 存储与卸载
 
-- 独立 manifest、JS 和 CSS，无构建步骤，无新增依赖。
-- 隐藏顶部管理栏、管理抽屉、聊天管理菜单、消息编辑操作和滑动切换按钮。
-- 居中自适应聊天布局；保留原生消息格式、输入、发送与生成停止。
-- 常驻 ON/OFF、快捷键退出、URL 安全模式；关键 DOM 缺失时拒绝开启并输出 warning。
-- 仅记录初始化、模式切换和异常，不监听流式 token、不刷消息内容。
+只向扩展专用 LocalStorage 键 `PlayerMode.preferences.v1` 写入开关状态、随机盐和 PBKDF2-SHA-256 校验值（210000 次），不保存明文密码，不上传密码。Web Crypto 需要 HTTPS 或 localhost 安全上下文；普通远程 HTTP 下无法设置/验证密码，操作失败时不会按普通退出处理。
 
-## 本地兼容性调查
+要卸载，在验证退出后使用扩展管理禁用/删除并刷新，或移除独立 PlayerMode 目录后刷新。需要清除全部扩展状态时，只删除上面的专用存储键。已加载的 JS/CSS 不会因为磁盘文件被删而自动消失，必须刷新。
 
-研究对象：开发时本地安装的 SillyTavern，`package.json` 标识版本 **1.18.0**。只读取源码，未修改该目录。
+扩展不读取 API Key，不修改原始消息 DOM 或原生事件处理器。所有宿主样式覆盖都限定在 `body.playermode-active`；OFF 去掉该 class 即恢复宿主样式。扩展自己的顶部按钮和密码窗口使用独立命名。
 
-参考源文件及确认结果：
+## 兼容性调查
 
-| 本地源码 | 确认内容 |
+开发时只读取本地 SillyTavern **1.18.0** 源码，未修改宿主文件。
+
+| 源码 | 使用的机制 |
 | --- | --- |
-| `public/scripts/extensions/regex/manifest.json` | `display_name/loading_order/requires/optional/js/css/author/version` 格式 |
-| `public/scripts/extensions.js` | manifest 的 JS 以 `type=module` 加载，CSS 通过独立样式表加载；禁用默认重新加载页面 |
-| `public/script.js` | 全局 `SillyTavern.getContext()`；`#send_but` 原生点击交给 `userInputGenerateMutex.update()` |
-| `public/scripts/st-context.js` | 上下文提供 `chat/characterId/groupId/chatId`、`eventSource`、`eventTypes`；本扩展不需要读取聊天数据 |
-| `public/scripts/events.js`、`public/lib/eventemitter.js` | `APP_READY` 表示应用就绪，并向晚注册的监听器重放，支持首次及延后加载 |
-| `public/index.html` | `#sheld/#chat/#form_sheld/#send_form/#nonQRFormItems/#send_textarea/#rightSendForm/#send_but/#mes_stop` |
-| `src/constants.js`、`src/endpoints/extensions.js` | 全局和用户扩展目录、第三方扩展发现机制 |
+| `public/scripts/extensions/regex/manifest.json` | manifest 的 js/css 等字段 |
+| `public/scripts/extensions.js` | JS 模块入口与独立 CSS 加载 |
+| `public/script.js`、`scripts/st-context.js` | `SillyTavern.getContext()`；上下文提供 chat/characterId/groupId/chatId，但本扩展不需要读聊天内容 |
+| `public/scripts/events.js`、`public/lib/eventemitter.js` | APP_READY，以及对晚注册监听器重放就绪事件 |
+| `public/index.html` | 原生聊天、输入框、发送、停止按钮与新对话入口 |
+| `public/script.js` | `#option_start_new_chat` 委托事件：原生确认后调用原生新聊天逻辑 |
 
-JS 必需 DOM 选择器集中在 `selectors`；显示隐藏和布局选择器集中在 `style.css`。没有使用 `nth-child`。不调用 Generate，不模拟发送点击，用户直接操作原生按钮；不改变发送/停止按钮的原生显示状态。
+JS 的宿主选择器集中在 selectors，样式选择器集中在 style.css，不使用 nth-child。不调用模型 API，不构建 Prompt，不扫描世界书，不改写原生发送按钮显示状态。
 
-## 已知问题与边界
+## 已知限制
 
-- 这是 UI 简化，不是权限系统。退出按钮、开发者工具、原生快捷键、斜杠命令等仍可触达宿主能力，不能把它当作远程访客的安全隔离措施。
-- 其他扩展的独立浮窗、Quick Replies、主题自定义控件或弹窗可能仍显示。为了不破坏生成期间所需交互，没有一刀切隐藏所有 body 子节点或通用弹窗。管理面板内的扩展设置会隐藏，扩展后台逻辑仍运行。
-- DOM 改版、主题的高优先级样式、移动设备键盘和特殊布局可能影响外观；目前只核对了本机 1.18.0 源码，没有承诺跨版本兼容。
-- 原生消息正文及其链接、按钮、富文本保持原样；这不是内容过滤器。
-- 未选聊天、API 未连接或原生配置有问题时，扩展不会自动配置或修复。请退出后处理。
-- 如果正在编辑消息、删除消息或打开管理弹窗，先完成/取消操作再开启，避免隐藏操作中的入口。
+- 特殊主题、DOM 改版、手机软键盘可能影响外观。未承诺跨版本兼容。
+- 第三方浮窗、Quick Replies、原生弹窗和正文交互仍可能显示，以保留原生功能。
+- 快捷键、斜杠命令和开发者工具不受此扩展权限控制。
+- 存储损坏、不可读或关键 DOM 缺失时回退普通界面并记录警告；这不是安全边界。
+- 多个已打开标签页不会实时同步开关与密码；修改后请刷新其他标签页。
+- 正在编辑、删除消息时，请先结束操作再开启。
 
-## 自检与验收
+## 自检与手动验收
 
-已完成静态与隔离模拟检查：manifest 入口存在、CSS 语法及作用域、初始化重复调用、连续五次 ON/OFF、快捷键退出、URL 强制关闭、缺失关键 DOM 拒绝开启。检查不启动 SillyTavern、不发送请求、不写聊天。没有新增模型请求、Prompt 拼接、世界书扫描逻辑或宿主文件写入逻辑。
+隔离测试覆盖密码校验、状态恢复、错误/取消退出、正确退出、快捷键验证、URL 不绕过、原生新对话入口转发以及存储失败处理。测试使用模拟 DOM，不替代真实浏览器验收。
 
-**尚未在安装后的真实浏览器中验证视觉布局或模型生成。** 模拟检查不能替代以下手动验收：
+更新后请检查：
 
-1. 普通 UI 选择测试聊天，先确认原生能正常生成。记录角色、Preset、世界书及 API 的当前配置。
-2. 开启 PlayerMode：确认历史消息与格式保留、管理栏隐藏，输入并点击原生发送。
-3. 确认 AI 正常回复、流式输出逐步出现；生成中测试停止按钮，确认后续仍可发送。
-4. 发送已有世界书条目的触发词；退出后用原生 Prompt 检查功能确认条目实际插入，而不只根据回复猜测。
-5. 检查原生 Prompt、Preset、正则及已启用的 Summary/Vector Storage 等仍按原配置工作。
-6. ON/OFF 切换前后确认草稿和消息没有丢失；在生成中切换一次，确认流式继续。
-7. 待原生保存完成后重新加载，确认历史存在且 PlayerMode 默认 OFF。
-8. 测试 URL 安全模式、桌面和手机宽度，以及你正在使用的主题和第三方扩展。
-9. 禁用/删除扩展并重新加载，确认普通 UI 与原有功能恢复。
+1. 首次设置密码，开启后刷新自动 ON；输入框和历史消息保留。
+2. 错误密码/取消/Escape 不退出；正确密码退出后刷新保持 OFF。
+3. 快捷键同样验证密码；URL 添加 playermode=0 不绕过。
+4. 点击新对话，取消原生确认不改变聊天；确认后新聊天正常，未勾选删除时旧聊天保留。
+5. 原生发送、流式、停止、角色、Preset、世界书触发及原生保存正常；用原生 Prompt 检查确认世界书实际插入。
+6. 当前主题、移动设备和其他扩展兼容；移除扩展并刷新恢复普通界面。
 
-上述实际聊天、世界书、Preset、API 与保存验收需手动执行；当前交付不将这些项目标记为已通过。
+未自动安装或启动 SillyTavern，未调用真实模型；实际聊天与浏览器布局仍需安装后验收。
