@@ -1,185 +1,157 @@
-import { createCredential, validCredential, verifyPassword } from './security.js';
+import { createCredential, verifyPassword } from './security.js';
+import { createSettingsStore, validSettings } from './settings.js';
 
-/* Only presentation changes: original chat nodes and generation handlers stay intact. */
 (() => {
-    'use strict';
-    const modeClass = 'playermode-active';
-    const storageKey = 'PlayerMode.preferences.v1';
-    const selectors = Object.freeze({
-        shell: '#sheld', chat: '#chat', form: '#send_form',
-        input: '#send_textarea', send: '#send_but', stop: '#mes_stop',
-        newChat: '#option_start_new_chat',
-    });
-    let toggle, newChatButton, passwordButton;
-    let active = false;
-    let initialized = false;
-    let busy = false;
-    let preferences = { enabled: false, credential: null };
-
-    function report(message, error) {
-        console.warn('[PlayerMode]', message, error?.name ?? '');
-        window.alert(message);
-    }
-
-    function savePreferences(next) {
-        // Save before changing UI, so a failed write cannot silently unlock on refresh.
-        localStorage.setItem(storageKey, JSON.stringify(next));
-        preferences = next;
-    }
-
-    function renderMode(next) {
-        active = next;
-        document.body.classList.toggle(modeClass, active);
-        toggle.textContent = active ? 'PlayerMode · 退出' : 'PlayerMode · 开启';
-        toggle.setAttribute('aria-pressed', String(active));
-        newChatButton.hidden = !active;
-        passwordButton.hidden = active;
-        console.log(`[PlayerMode] ${active ? 'ON' : 'OFF'}`);
-    }
-
-    function hasChatDOM() {
-        const missing = Object.entries(selectors).filter(([key, selector]) => key !== 'newChat' && !document.querySelector(selector));
-        if (!missing.length) return true;
-        report('找不到必要的聊天界面，PlayerMode 未开启。请检查 SillyTavern 版本。');
-        return false;
-    }
-
-    function askPassword(setup) {
-        return new Promise(resolve => {
-            const dialog = document.createElement('dialog');
-            dialog.className = 'playermode-dialog';
-            const form = document.createElement('form');
-            form.method = 'dialog';
-            const title = document.createElement('h3');
-            title.textContent = setup ? '设置 PlayerMode 退出密码' : '输入密码退出 PlayerMode';
-            const help = document.createElement('p');
-            help.textContent = setup ? '至少 8 个字符。仅保存在当前浏览器，不与其他设备同步。请勿使用重要账号的密码。' : '验证通过后恢复普通界面。';
-            const input = document.createElement('input');
-            input.type = 'password'; input.required = true;
-            input.autocomplete = setup ? 'new-password' : 'current-password';
-            input.setAttribute('aria-label', '退出密码');
-            const confirm = document.createElement('input');
-            confirm.type = 'password'; confirm.required = true;
-            confirm.autocomplete = 'new-password';
-            confirm.setAttribute('aria-label', '再次输入退出密码');
-            const error = document.createElement('p');
-            error.setAttribute('role', 'alert');
-            const submit = document.createElement('button');
-            submit.type = 'submit'; submit.textContent = setup ? '保存密码' : '验证并退出';
-            const cancel = document.createElement('button');
-            cancel.type = 'button'; cancel.textContent = '取消';
-            form.append(title, help, input);
-            if (setup) form.append(confirm);
-            form.append(error, submit, cancel);
-            dialog.append(form);
-            let settled = false;
-            const finish = value => {
-                if (settled) return;
-                settled = true;
-                input.value = ''; confirm.value = '';
-                dialog.remove(); resolve(value);
-            };
-            cancel.addEventListener('click', () => finish(null));
-            dialog.addEventListener('cancel', event => { event.preventDefault(); finish(null); });
-            form.addEventListener('submit', event => {
-                event.preventDefault();
-                if (setup && (input.value.length < 8 || input.value !== confirm.value)) {
-                    error.textContent = '密码须至少 8 个字符，且两次输入一致。';
-                    return;
-                }
-                finish(input.value);
-            });
-            document.body.append(dialog);
-            try { dialog.showModal(); input.focus(); }
-            catch (error) { finish(null); report('无法打开密码窗口，请更新浏览器。', error); }
-        });
-    }
-
-    async function setupPassword() {
-        const password = await askPassword(true);
-        if (password === null) return false;
-        const credential = await createCredential(password);
-        savePreferences({ ...preferences, credential });
-        return true;
-    }
-
-    async function changeMode() {
-        if (busy) return;
-        busy = true;
-        try {
-            if (active) {
-                const password = await askPassword(false);
-                if (password === null) return;
-                if (!await verifyPassword(password, preferences.credential)) {
-                    report('密码不正确，仍保持 PlayerMode。');
-                    return;
-                }
-                savePreferences({ ...preferences, enabled: false });
-                renderMode(false);
-            } else {
-                if (!hasChatDOM()) return;
-                if (!validCredential(preferences.credential) && !await setupPassword()) return;
-                savePreferences({ ...preferences, enabled: true });
-                renderMode(true);
-            }
-        } catch (error) {
-            report('操作未完成。请确认浏览器允许本地存储，且使用 HTTPS 或 localhost。忘记密码时可禁用扩展后刷新。', error);
-        } finally { busy = false; }
-    }
-
-    async function changePassword() {
-        if (busy || active) return;
-        busy = true;
-        try { await setupPassword(); }
-        catch (error) { report('密码保存失败，请使用 HTTPS 或 localhost 并允许本地存储。', error); }
-        finally { busy = false; }
-    }
-
-    function initialize() {
-        if (initialized) return;
-        initialized = true;
-        document.body.classList.remove(modeClass);
-        const toolbar = document.createElement('div');
-        toolbar.id = 'playermode-toolbar';
-        Object.assign(toolbar.style, { position: 'fixed', top: '8px', right: '8px', zIndex: '2147483647', display: 'flex', gap: '6px', maxWidth: 'calc(100vw - 16px)' });
-        function button(label, handler) {
-            const element = document.createElement('button');
-            element.type = 'button'; element.textContent = label;
-            Object.assign(element.style, { padding: '6px 8px', background: '#20242b', color: '#fff', border: '1px solid #818b99', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' });
-            element.addEventListener('click', handler);
-            toolbar.append(element);
-            return element;
-        }
-        newChatButton = button('新对话', () => {
-            // The native delegated click handler retains its confirmation and generation guard.
-            const native = document.querySelector(selectors.newChat);
-            if (!native) { report('找不到原生新对话入口，请检查 SillyTavern 版本。'); return; }
-            if (!busy) native.click();
-        });
-        passwordButton = button('设置退出密码', changePassword);
-        toggle = button('PlayerMode', changeMode);
-        toggle.id = 'playermode-toggle';
-        toggle.title = '退出需要密码；Ctrl+Shift+P 同样需要验证';
-        document.body.append(toolbar);
-        document.addEventListener('keydown', event => {
-            if (active && event.ctrlKey && event.shiftKey && event.code === 'KeyP') {
-                event.preventDefault(); void changeMode();
-            }
-        }, true);
-        try {
-            const saved = JSON.parse(localStorage.getItem(storageKey) ?? 'null');
-            if (saved && typeof saved.enabled === 'boolean' && validCredential(saved.credential)) preferences = saved;
-            else if (saved) console.warn('[PlayerMode] Invalid preferences; starting OFF.');
-        } catch (error) { console.warn('[PlayerMode] Cannot read preferences; starting OFF.', error.name); }
-        renderMode(preferences.enabled && hasChatDOM());
-        // No URL or keyboard bypass. Disabling the extension and reloading is recovery.
-        console.log('[PlayerMode] Initialized');
-    }
-
     const context = globalThis.SillyTavern?.getContext?.();
     if (!context?.eventSource || !context.eventTypes?.APP_READY) {
-        console.warn('[PlayerMode] Extension API unavailable; UI left unchanged.');
-        return;
+        console.warn('[PlayerMode] Extension API unavailable.'); return;
+    }
+    const store = createSettingsStore(context);
+    const selectors = {
+        shell: '#sheld', chat: '#chat', input: '#send_textarea', send: '#send_but', stop: '#mes_stop',
+        newChat: '#option_start_new_chat', settings: '#extensions_settings',
+    };
+    let active = false, ready = false, dialogOpen = false, configured = false;
+    let toolbar, title, exit, enter, settingsButton, status;
+    const el = (tag, className, text) => {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text) node.textContent = text;
+        return node;
+    };
+    function button(text, handler, variant = '') {
+        const node = el('button', `pm-button ${variant}`, text);
+        node.type = 'button'; node.addEventListener('click', handler); return node;
+    }
+    let statusTimer;
+    function notify(message) {
+        clearTimeout(statusTimer); status.textContent = message;
+        statusTimer = setTimeout(() => { status.textContent = ''; }, 6500);
+    }
+    function setMode(next) {
+        if (next && ['shell', 'chat', 'input', 'send', 'stop'].some(key => !document.querySelector(selectors[key]))) {
+            notify('找不到必要的聊天界面，请检查 SillyTavern 版本。');
+            console.warn('[PlayerMode] Essential DOM missing.'); return;
+        }
+        active = next;
+        document.body.classList.toggle('playermode-active', next);
+        toolbar.hidden = !next;
+        enter.hidden = next || !configured;
+        console.log(`[PlayerMode] ${next ? 'ON' : 'OFF'}`);
+    }
+    function updateTitle() {
+        const current = globalThis.SillyTavern.getContext();
+        title.textContent = current.name2 || '当前对话';
+    }
+    function showPassword(kind) {
+        if (dialogOpen) return;
+        dialogOpen = true;
+        const trigger = document.activeElement;
+        const dialog = el('dialog', 'pm-dialog');
+        const form = el('form', 'pm-form'); form.noValidate = true;
+        const heading = el('h2', '', kind === 'exit' ? '返回普通界面' : '统一退出密码');
+        heading.id = 'pm-dialog-title';
+        const help = el('p', 'pm-muted', kind === 'exit' ? '输入管理员设置的密码，解锁当前页面。刷新后重新进入玩家模式。' : '所有使用同一账户的浏览器将使用这个密码。设置完成后再邀请朋友访问。');
+        help.id = 'pm-dialog-help';
+        dialog.setAttribute('aria-labelledby', heading.id);
+        dialog.setAttribute('aria-describedby', help.id);
+        form.append(el('span', 'pm-eyebrow', 'PLAYERMODE'), heading, help);
+        const fields = {};
+        function field(key, label, autocomplete) {
+            const group = el('div', 'pm-field');
+            const input = el('input'); input.type = 'password'; input.id = `pm-${key}`;
+            input.autocomplete = autocomplete;
+            input.setAttribute('aria-describedby', 'pm-error');
+            const caption = el('label', '', label); caption.htmlFor = input.id;
+            const row = el('div', 'pm-password-row');
+            const reveal = button('显示', () => {
+                input.type = input.type === 'password' ? 'text' : 'password';
+                reveal.textContent = input.type === 'password' ? '显示' : '隐藏';
+                reveal.setAttribute('aria-label', `${reveal.textContent}${label}`);
+                reveal.setAttribute('aria-pressed', String(input.type === 'text'));
+            });
+            reveal.setAttribute('aria-label', `显示${label}`);
+            row.append(input, reveal); group.append(caption, row); form.append(group); fields[key] = input;
+        }
+        if (kind === 'exit' || configured) field('current', '当前退出密码', 'current-password');
+        if (kind !== 'exit') { field('password', '新密码（至少 8 个字符）', 'new-password'); field('confirm', '再次输入新密码', 'new-password'); }
+        const error = el('p', 'pm-error'); error.id = 'pm-error'; error.setAttribute('role', 'alert');
+        const actions = el('div', 'pm-dialog-actions');
+        let pending = false;
+        function close() {
+            if (pending) return;
+            Object.values(fields).forEach(input => { input.value = ''; });
+            dialog.close(); dialog.remove(); dialogOpen = false;
+            if (trigger?.isConnected) trigger.focus();
+        }
+        const cancel = button('取消', close);
+        const submit = el('button', 'pm-button pm-primary', kind === 'exit' ? '验证并退出' : '保存并开启'); submit.type = 'submit';
+        actions.append(cancel, submit); form.append(error, actions); dialog.append(form);
+        dialog.addEventListener('cancel', event => { event.preventDefault(); close(); });
+        form.addEventListener('submit', async event => {
+            event.preventDefault(); if (pending) return;
+            error.textContent = '';
+            Object.values(fields).forEach(input => input.removeAttribute('aria-invalid'));
+            function invalid(input, message) { input?.setAttribute('aria-invalid', 'true'); input?.focus(); throw new Error(message); }
+            try {
+                if (kind !== 'exit' && fields.password.value.length < 8) invalid(fields.password, '新密码至少需要 8 个字符。');
+                if (kind !== 'exit' && fields.password.value !== fields.confirm.value) invalid(fields.confirm, '两次新密码不一致。');
+                pending = true; submit.disabled = true; cancel.disabled = true; form.setAttribute('aria-busy', 'true');
+                const latest = await store.read();
+                if (latest) {
+                    if (!fields.current) throw new Error('另一页面已设置密码。请关闭窗口，刷新后使用现有密码。');
+                    if (!await verifyPassword(fields.current.value, latest.credential)) invalid(fields.current, '密码不正确，请重新输入。');
+                } else if (kind === 'exit' || configured) throw new Error('共享密码配置已移除，请联系管理员恢复。');
+                if (kind === 'exit') {
+                    context.extensionSettings.PlayerMode = latest;
+                    pending = false; close(); setMode(false);
+                } else {
+                    const credential = await createCredential(fields.password.value);
+                    await store.save({ version: 1, credential });
+                    configured = true;
+                    pending = false; close(); setMode(true); notify('密码已保存，玩家模式已开启。');
+                }
+            } catch (failure) {
+                error.textContent = globalThis.crypto?.subtle ? failure.message : '密码功能需要 HTTPS 或 localhost，请检查访问地址。';
+            } finally {
+                pending = false; submit.disabled = false; cancel.disabled = false; form.removeAttribute('aria-busy');
+            }
+        });
+        document.body.append(dialog); dialog.showModal(); Object.values(fields)[0].focus();
+    }
+    function initialize() {
+        if (ready) return; ready = true;
+        toolbar = el('header', 'pm-toolbar');
+        const identity = el('div', 'pm-identity');
+        title = el('h1', 'pm-title'); identity.append(el('span', 'pm-eyebrow', 'PLAYERMODE · 对话'), title);
+        const actions = el('div', 'pm-actions');
+        const newChat = button('＋ 新对话', () => {
+            const native = document.querySelector(selectors.newChat);
+            if (native) native.click(); else notify('找不到原生新对话入口，请检查版本。');
+        });
+        exit = button('退出玩家模式', () => showPassword('exit'), 'pm-quiet');
+        actions.append(newChat, exit); toolbar.append(identity, actions);
+        status = el('div', 'pm-status'); status.setAttribute('role', 'status');
+        enter = button('进入玩家模式', () => setMode(true)); enter.classList.add('pm-enter');
+        document.body.append(toolbar, enter, status);
+        const panel = el('section', 'pm-settings');
+        settingsButton = button('设置／修改统一退出密码', () => showPassword('setup'));
+        panel.append(el('h3', '', 'PlayerMode'), el('p', '', '统一密码保存在当前 SillyTavern 账户。刷新后自动进入玩家模式。'), settingsButton);
+        const host = document.querySelector(selectors.settings);
+        if (host) host.append(panel); else console.warn('[PlayerMode] Settings host missing.');
+        const value = context.extensionSettings.PlayerMode;
+        configured = validSettings(value);
+        // Old browser-local credentials and ON/OFF state are never trusted or imported.
+        updateTitle(); setMode(configured);
+        if (value && !configured) notify('共享密码配置异常，请在扩展设置中恢复；未使用旧浏览器密码。');
+        else if (!configured) notify('请先在扩展设置中配置统一退出密码。');
+        context.eventSource.on(context.eventTypes.CHAT_CHANGED, updateTitle);
+        document.addEventListener('keydown', event => {
+            if (active && !event.isComposing && event.ctrlKey && event.shiftKey && event.code === 'KeyP') {
+                event.preventDefault(); showPassword('exit');
+            }
+        }, true);
+        console.log('[PlayerMode] Initialized 0.3.0');
     }
     context.eventSource.on(context.eventTypes.APP_READY, initialize);
 })();

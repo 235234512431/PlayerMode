@@ -1,4 +1,4 @@
-// Browser-local convenience lock; never a server authorization boundary.
+// Shared-account UI convenience lock; never a server authorization boundary.
 const iterations = 210000;
 const hex = bytes => Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('');
 const unhex = value => Uint8Array.from(value.match(/../g), pair => parseInt(pair, 16));

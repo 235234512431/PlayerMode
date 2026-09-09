@@ -1,85 +1,112 @@
-/* DOM compatibility map for ST 1.18.0. All host overrides require this class.
-   Do not override send/stop display: native generation state controls them. */
-body.playermode-active :is(
-    #top-bar, #top-settings-holder, #left-nav-panel, #right-nav-panel,
-    .drawer-content, #options, #extensionsMenu, #floatingPrompt,
-    #cfgConfig, #logprobsViewer, #sheldheader, #leftSendForm,
-    #mes_impersonate, #mes_continue,
-    #chat .mes_buttons, #chat .extraMesButtons, #chat .swipe_left,
-    #chat .swipe_right, #chat .swipes-counter
-) {
-    display: none !important;
+/* Token owner: style.css; rationale and mapping are recorded in DESIGN.md. */
+body.playermode-active, .pm-dialog, .pm-settings, .pm-enter, .pm-status {
+    --pm-bg: #111724; --pm-surface: #1B2434; --pm-border: #344158;
+    --pm-text: #E9EDF5; --pm-muted: #AAB6CB; --pm-accent: #B6A7EA;
+    --pm-error: #ffb5b5; --pm-radius: 16px; --pm-header: 88px;
+    --pm-font: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    --pm-title-font: 'Songti SC', STSong, 'Noto Serif CJK SC', serif;
+    --pm-z-header: 100; --pm-z-status: 200;
 }
-
+body.playermode-active {
+    background: var(--pm-bg) !important; color: var(--pm-text);
+}
+body.playermode-active :is(#top-bar, #top-settings-holder, #left-nav-panel, #right-nav-panel,
+.drawer-content, #options, #extensionsMenu, #floatingPrompt, #cfgConfig, #logprobsViewer,
+#sheldheader, #leftSendForm, #mes_impersonate, #mes_continue,
+#chat .mes_buttons, #chat .extraMesButtons, #chat .swipe_left, #chat .swipe_right, #chat .swipes-counter,
+#bg1, #bg2) { display: none !important; }
+.pm-toolbar[hidden], .pm-enter[hidden] { display: none !important; }
+.pm-toolbar {
+    position: fixed; inset: 0 0 auto; z-index: var(--pm-z-header);
+    box-sizing: border-box; height: var(--pm-header); max-width: 916px;
+    margin: 0 auto; padding: 18px 28px 14px; display: flex;
+    justify-content: space-between; align-items: center; gap: 12px;
+    background: var(--pm-bg); border-bottom: 1px solid var(--pm-border);
+    font-family: var(--pm-font); color: var(--pm-text);
+}
+.pm-identity { min-width: 0; }
+.pm-eyebrow { color: var(--pm-muted); font: 10px/1.5 var(--pm-font); letter-spacing: .14em; }
+.pm-title { font: 24px/1.4 var(--pm-title-font); color: var(--pm-text); margin: 3px 0 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pm-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.pm-button {
+    min-height: 40px; padding: 8px 12px; border-radius: 10px;
+    background: var(--pm-surface); color: var(--pm-text); border: 1px solid var(--pm-border);
+    font: 13px/1.4 var(--pm-font); cursor: pointer; transition: background .15s, border-color .15s;
+}
+.pm-button:hover:not(:disabled) { border-color: var(--pm-accent); background: #29334a; }
+.pm-button:active:not(:disabled) { background: #344158; }
+.pm-button:disabled { cursor: wait; opacity: .6; }
+.pm-button:focus-visible, .pm-dialog input:focus-visible,
+body.playermode-active #send_textarea:focus-visible { outline: 2px solid var(--pm-accent); outline-offset: 3px; }
+.pm-quiet { background: transparent; color: var(--pm-muted); }
+.pm-primary { background: var(--pm-accent); color: #111724; border-color: var(--pm-accent); }
+.pm-primary:hover:not(:disabled) { background: #c8bdf0; color: #111724; }
+.pm-enter { position: fixed; top: 8px; right: 8px; z-index: var(--pm-z-header); }
+.pm-settings { padding: 14px; color: inherit; font-family: var(--pm-font); }
+.pm-settings p { line-height: 1.7; }
+.pm-status { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: var(--pm-z-status); max-width: min(520px, 88vw); background: var(--pm-surface); color: var(--pm-text); border-radius: 10px; font: 13px/1.6 var(--pm-font); box-shadow: 0 4px 24px #0004; }
+.pm-status:not(:empty) { padding: 10px 16px; border: 1px solid var(--pm-border); }
 body.playermode-active #sheld {
-    position: fixed !important;
-    inset: 44px 0 0 !important;
-    margin: 0 auto !important;
-    width: min(100%, 960px) !important;
-    max-width: 100% !important;
-    height: calc(100dvh - 44px) !important;
-    max-height: calc(100dvh - 44px) !important;
-    min-height: 0 !important;
-    transform: none !important;
-    display: flex !important;
-    flex-direction: column !important;
-    border-radius: 0 !important;
+    position: fixed !important; inset: var(--pm-header) 0 0 !important; margin: 0 auto !important;
+    width: min(100%, 916px) !important; max-width: 100% !important;
+    height: calc(100dvh - var(--pm-header)) !important; max-height: calc(100dvh - var(--pm-header)) !important;
+    min-height: 0 !important; transform: none !important; display: flex !important;
+    flex-direction: column !important; border: none !important; border-radius: 0 !important;
+    background: var(--pm-bg) !important; box-shadow: none !important; backdrop-filter: none !important;
 }
-
 body.playermode-active #chat {
-    flex: 1 1 0 !important;
-    min-height: 0 !important;
-    height: auto !important;
-    max-height: none !important;
-    overflow-y: auto !important;
-    padding: 12px clamp(8px, 3vw, 28px) !important;
+    flex: 1 1 0 !important; min-height: 0 !important; height: auto !important; max-height: none !important;
+    overflow-y: auto !important; padding: 24px 28px !important; background: transparent !important;
+    font-family: var(--pm-font); color: var(--pm-text); scrollbar-gutter: stable;
 }
-
-body.playermode-active #form_sheld {
-    flex: 0 0 auto !important;
-    width: 100% !important;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+body.playermode-active #chat .mes {
+    border: 1px solid transparent !important; border-radius: var(--pm-radius) !important;
+    margin: 0 0 22px !important; padding: 18px !important; background: transparent !important;
+    box-shadow: none !important; width: 100% !important; box-sizing: border-box;
 }
-
-body.playermode-active #send_form {
-    width: 100% !important;
-    margin: 0 !important;
+body.playermode-active #chat .mes[is_user="true"] { background: var(--pm-surface) !important; border-color: var(--pm-border) !important; }
+body.playermode-active #chat .mes_text { font: 16px/1.85 var(--pm-font); color: var(--pm-text); overflow-wrap: anywhere; }
+body.playermode-active #chat .mes_text pre { max-width: 100%; overflow-x: auto; white-space: pre; }
+body.playermode-active #chat .mes_text img { max-width: 100%; height: auto; }
+body.playermode-active #chat .ch_name { color: var(--pm-accent); }
+body.playermode-active #chat .timestamp { color: var(--pm-muted); font-size: 11px; }
+body.playermode-active #form_sheld { flex: 0 0 auto !important; width: 100% !important; padding: 8px 28px max(16px, env(safe-area-inset-bottom)) !important; box-sizing: border-box; }
+body.playermode-active #send_form { width: 100% !important; margin: 0 !important; background: var(--pm-surface) !important; border: 1px solid var(--pm-border) !important; border-radius: var(--pm-radius) !important; padding: 10px !important; box-shadow: none !important; }
+body.playermode-active #nonQRFormItems { display: flex !important; align-items: flex-end !important; gap: 10px; }
+body.playermode-active #send_textarea { flex: 1 1 auto !important; width: auto !important; min-width: 0 !important; max-height: 30dvh !important; min-height: 44px; padding: 10px; resize: none; font: 16px/1.6 var(--pm-font); color: var(--pm-text) !important; background: transparent !important; border: none !important; box-shadow: none !important; }
+body.playermode-active #send_textarea::placeholder { color: var(--pm-muted); }
+body.playermode-active #rightSendForm { flex: 0 0 auto !important; }
+/* Native logic owns display/disabled state for send and stop. */
+body.playermode-active :is(#send_but, #mes_stop) { color: var(--pm-accent); min-width: 40px; min-height: 40px; cursor: pointer; }
+.pm-dialog { position: fixed; inset: 0; margin: auto; box-sizing: border-box; width: min(460px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto; padding: 28px; border: 1px solid var(--pm-border); border-radius: 20px; background: var(--pm-bg); color: var(--pm-text); box-shadow: 0 24px 80px #0008; font-family: var(--pm-font); }
+.pm-dialog::backdrop { background: rgb(5 9 18 / 78%); }
+.pm-form { display: flex; flex-direction: column; gap: 16px; }
+.pm-form h2 { margin: 0; font: 26px/1.4 var(--pm-title-font); }
+.pm-muted { color: var(--pm-muted); font-size: 13px; line-height: 1.8; margin: 0; }
+.pm-field label { display: block; margin-bottom: 7px; font-size: 13px; }
+.pm-password-row { display: flex; gap: 8px; }
+.pm-dialog input { width: 100%; min-width: 0; box-sizing: border-box; padding: 10px; border: 1px solid var(--pm-border); border-radius: 10px; background: var(--pm-surface); color: var(--pm-text); font: 16px var(--pm-font); }
+.pm-dialog input[aria-invalid="true"] { border-color: var(--pm-error); }
+.pm-error { min-height: 22px; margin: 0; color: var(--pm-error); font-size: 13px; line-height: 1.6; }
+.pm-dialog-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.pm-dialog-actions .pm-button { min-width: 100px; }
+body.playermode-active, body.playermode-active *, .pm-dialog { scrollbar-width: thin; scrollbar-color: var(--pm-border) var(--pm-bg); }
+body.playermode-active ::-webkit-scrollbar, .pm-dialog::-webkit-scrollbar { width: 10px; height: 10px; }
+body.playermode-active ::-webkit-scrollbar-thumb, .pm-dialog::-webkit-scrollbar-thumb { background: var(--pm-border); border-radius: 8px; }
+body.playermode-active ::-webkit-scrollbar-thumb:hover { background: var(--pm-muted); }
+body.playermode-active ::-webkit-scrollbar-thumb:active { background: var(--pm-accent); }
+@media (max-width: 600px) {
+    body.playermode-active { --pm-header: 80px; }
+    .pm-toolbar { padding: 12px; gap: 6px; }
+    .pm-title { font-size: 20px; }
+    .pm-eyebrow { font-size: 9px; letter-spacing: .08em; }
+    .pm-actions { gap: 5px; }
+    .pm-actions .pm-button { font-size: 12px; padding: 8px; min-height: 44px; }
+    body.playermode-active #chat { padding: 14px 10px !important; }
+    body.playermode-active #chat .mes { padding: 12px !important; margin-bottom: 14px !important; }
+    body.playermode-active #form_sheld { padding: 8px 12px max(12px, env(safe-area-inset-bottom)) !important; }
 }
-
-body.playermode-active #nonQRFormItems {
-    display: flex !important;
-    align-items: flex-end !important;
-    gap: 8px;
-}
-
-body.playermode-active #send_textarea {
-    flex: 1 1 auto !important;
-    width: auto !important;
-    min-width: 0 !important;
-    max-height: 35dvh !important;
-}
-
-body.playermode-active #rightSendForm {
-    flex: 0 0 auto !important;
-}
-
-/* Extension-owned password dialog, available in both modes. */
-.playermode-dialog {
-    position: fixed;
-    inset: 0;
-    margin: auto;
-    width: min(420px, calc(100vw - 32px));
-    max-height: calc(100dvh - 32px);
-    overflow: auto;
-    padding: 24px;
-    border: 1px solid #818b99;
-    border-radius: 12px;
-    background: #20242b;
-    color: #fff;
-    z-index: 2147483647;
-}
-.playermode-dialog::backdrop { background: rgb(0 0 0 / 65%); }
-.playermode-dialog form { display: flex; flex-direction: column; gap: 12px; }
-.playermode-dialog input { width: 100%; box-sizing: border-box; padding: 10px; background: #10141b; color: #fff; border: 1px solid #818b99; border-radius: 4px; }
-.playermode-dialog button { padding: 8px; cursor: pointer; }
-.playermode-dialog [role="alert"] { color: #ffb5b5; margin: 0; }
+@media (prefers-reduced-motion: reduce) { .pm-button { transition: none; } }
+@media (forced-colors: active) { body.playermode-active *, .pm-dialog { scrollbar-color: auto; } .pm-button, .pm-dialog input { border-color: ButtonText; } }
+.pm-button { white-space: nowrap; }
+.pm-password-row > .pm-button { flex: 0 0 auto; min-width: 54px; }
