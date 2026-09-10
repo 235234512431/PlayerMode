@@ -2,7 +2,10 @@ import { validCredential } from './security.js';
 
 export const settingsKey = 'PlayerMode';
 export function validSettings(value) {
-    return value?.version === 1 && validCredential(value.credential);
+    return value?.version === 1 && validCredential(value.credential)
+        && (value.allowedAvatars === undefined || (Array.isArray(value.allowedAvatars) && value.allowedAvatars.every(item => typeof item === 'string')))
+        && (value.allowAllCharacters === undefined || typeof value.allowAllCharacters === 'boolean')
+        && (value.defaultAvatar === undefined || typeof value.defaultAvatar === 'string');
 }
 
 // Only the native settings endpoint is read. No model request or chat data is involved.
