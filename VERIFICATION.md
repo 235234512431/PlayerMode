@@ -1,3 +1,7 @@
+# PlayerMode 0.6.0 status
+
+User explicitly requested direct publishing without verification. No tests, browser preview or static design audit were run for 0.6.0. School-specific world lore was not supplied; the dedicated interface is a provisional classroom-at-dusk visual. Prior evidence below applies to previous versions only.
+
 # Final 0.5.0 status
 
 At the user’s explicit request, the final three-theme and reading-control changes were uploaded without validation. Earlier isolated tests applied to the two-theme implementation before reading controls. No browser visual QA, final regression run or 0.5.0 static audit was completed. Historical evidence below does not establish final-release verification.

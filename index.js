@@ -58,7 +58,7 @@ import { themes, createThemePreference } from './themes.js';
         return allowedCharacters(current, getSettings()).find(card => String(card.id) === String(current.characterId));
     }
     function updateTitle() {
-        title.textContent = currentCard()?.name || '故事书房';
+        title.textContent = currentCard()?.name || (document.body.dataset.pmTheme === 'fugou' ? '扶沟高中 · 窗世界' : '故事书房');
         const account = host.account();
         accountLabel.textContent = account.enabled ? `账户 · ${account.name}` : '默认账户 · 尚未启用账号隔离';
         const online = getContext().onlineStatus;
@@ -70,7 +70,6 @@ import { themes, createThemePreference } from './themes.js';
         library.root.hidden = false;
         document.body.classList.add('pm-browsing');
         library.show();
-        library.root.querySelector('h2')?.focus();
     }
     function hideLibrary() {
         if (!library) return;
@@ -298,6 +297,7 @@ import { themes, createThemePreference } from './themes.js';
             document.body.dataset.pmTheme = id;
             document.body.style.setProperty('--pm-reading-size', `${reading.fontSize}px`);
             document.body.style.setProperty('--pm-reading-leading', String(reading.lineHeight));
+            if (title) updateTitle();
         });
         toolbar = el('header', 'pm-toolbar');
         const identity = el('div', 'pm-identity');
@@ -315,11 +315,11 @@ import { themes, createThemePreference } from './themes.js';
         identity.append(accountLabel, connectionLabel);
         status = el('div', 'pm-status'); status.setAttribute('role', 'status');
         enter = button('进入玩家模式', () => setMode(true)); enter.classList.add('pm-enter');
-        library = createLibrary({ el, button, getContext, getSettings, navigation: { ...navigation, newChat: async avatar => { checkDraft(); await navigation.newChat(avatar); }, openChat: async (avatar, file) => { checkDraft(); await navigation.openChat(avatar, file); } }, onError: notify, onChat: () => { hideLibrary(); updateTitle(); } });
+        library = createLibrary({ el, button, getContext, getSettings, getAccount: () => host.account().handle, onResume: () => { hideLibrary(); updateTitle(); }, navigation: { ...navigation, newChat: async avatar => { checkDraft(); await navigation.newChat(avatar); }, openChat: async (avatar, file) => { checkDraft(); await navigation.openChat(avatar, file); } }, onError: notify, onChat: () => { hideLibrary(); updateTitle(); } });
         document.body.append(toolbar, enter, status, library.root);
         const panel = el('section', 'pm-settings');
         settingsButton = button('设置／修改统一退出密码', () => showPassword('setup'));
-        panel.append(el('h3', '', 'PlayerMode 0.5.0'), el('p', '', '每个原生账户分别配置退出密码、开放角色与模型/世界书；登录密码由酒馆管理。'), settingsButton, button('开放角色与默认角色', () => { if (!configured) { notify('请先设置退出密码。'); return; } showPassword('roles'); }), button('原生账户管理', () => { const node = document.querySelector('#admin_button'); if (host.account().admin && node) node.click(); else notify('此操作需要原生管理员账户。'); }));
+        panel.append(el('h3', '', 'PlayerMode 0.6.0'), el('p', '', '每个原生账户分别配置退出密码、开放角色与模型/世界书；登录密码由酒馆管理。'), settingsButton, button('开放角色与默认角色', () => { if (!configured) { notify('请先设置退出密码。'); return; } showPassword('roles'); }), button('原生账户管理', () => { const node = document.querySelector('#admin_button'); if (host.account().admin && node) node.click(); else notify('此操作需要原生管理员账户。'); }));
         const settingsHost = document.querySelector(selectors.settings);
         if (settingsHost) settingsHost.append(panel); else console.warn('[PlayerMode] Settings host missing.');
         const value = context.extensionSettings.PlayerMode;
@@ -335,7 +335,7 @@ import { themes, createThemePreference } from './themes.js';
                 event.preventDefault(); showPassword('exit');
             }
         }, true);
-        console.log('[PlayerMode] Initialized 0.5.0');
+        console.log('[PlayerMode] Initialized 0.6.0');
     }
     context.eventSource.on(context.eventTypes.APP_READY, initialize);
 })();

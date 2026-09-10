@@ -87,6 +87,8 @@ class FixtureNode {
  querySelectorAll(tag){return this.children.flatMap(c=>[...(c.tag===tag?[c]:[]),...c.querySelectorAll(tag)])}
  click(){return this.events.click?.()}
 }
+FixtureNode.prototype.appendChild = function(node) { this.children.push(node); };
+globalThis.document = {createElementNS: (_ns, tag) => new FixtureNode(tag)};
 const make=(...args)=>new FixtureNode(...args),pendingHistory=new Map();
 const shelf=createLibrary({el:make,button:(label,action,cls)=>{const n=make('button',cls,label);n.addEventListener('click',action);return n},getContext:()=>navContext,getSettings:()=>({allowAllCharacters:true}),navigation:{history:avatar=>new Promise(resolve=>pendingHistory.set(avatar,resolve))},onError:message=>assert.fail(message),onChat(){}});
 const firstHistory=shelf.showHistory('one.png'),secondHistory=shelf.showHistory('two.png');

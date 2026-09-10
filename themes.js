@@ -1,5 +1,6 @@
 // Appearance only. Never read or write credentials, unlock state or native shared settings.
 export const themes = [
+    { id: 'fugou', name: '扶沟高中 · 窗世界', description: '教室窗框、纸页与校园档案，让每次对话成为校园故事的一页。' },
     { id: 'midnight', name: '雾紫夜谈', description: '深蓝夜色与雾紫，安静地读完一段长对话。' },
     { id: 'letter', name: '旧信笺', description: '浅色信纸与墨绿文字，像翻开一封等待已久的来信。' },
     { id: 'rain', name: '雨夜书房', description: '青灰雨窗、旧书纸色与暖灯，留一盏灯等故事继续。' },
