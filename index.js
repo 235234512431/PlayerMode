@@ -3,6 +3,7 @@ import { createSettingsStore, validSettings } from './settings.js';
 import { createNavigation, allowedCharacters } from './navigation.js';
 import { createLibrary } from './library.js';
 import { host } from './host.js';
+import { themes, createThemePreference } from './themes.js';
 
 (() => {
     const context = globalThis.SillyTavern?.getContext?.();
@@ -15,7 +16,7 @@ import { host } from './host.js';
         newChat: '#option_start_new_chat', settings: '#extensions_settings',
     };
     let active = false, ready = false, dialogOpen = false, configured = false;
-    let toolbar, title, exit, enter, settingsButton, status, library, accountLabel, connectionLabel;
+    let toolbar, title, exit, enter, settingsButton, status, library, accountLabel, connectionLabel, appearance;
     const getContext = () => globalThis.SillyTavern.getContext();
     const getSettings = () => getContext().extensionSettings.PlayerMode;
     const navigation = createNavigation(getContext, host.isGenerating, getSettings, () => {
@@ -120,6 +121,67 @@ import { host } from './host.js';
         dialog.append(error, actions);
         dialog.addEventListener('cancel', event => { event.preventDefault(); close(); });
         document.body.append(dialog); dialog.showModal(); cancel.focus();
+    }
+    function showThemes() {
+        if (dialogOpen) return;
+        dialogOpen = true;
+        const trigger = document.activeElement;
+        const dialog = el('dialog', 'pm-dialog');
+        const form = el('form', 'pm-form'); form.noValidate = true;
+        const heading = el('h2', '', '选择故事的光线'); heading.id = 'pm-theme-title';
+        const help = el('p', 'pm-muted', '选择后即时预览。只记住本浏览器中当前账户的外观。'); help.id = 'pm-theme-help';
+        dialog.setAttribute('aria-labelledby', heading.id); dialog.setAttribute('aria-describedby', help.id);
+        const choices = el('fieldset', 'pm-theme-options');
+        choices.append(el('legend', 'pm-muted', '界面主题'));
+        let chosen = appearance.value;
+        const reading = appearance.reading;
+        let first;
+        themes.forEach(theme => {
+            const label = el('label', 'pm-theme-choice'); label.dataset.pmPalette = theme.id;
+            const input = el('input'); input.type = 'radio'; input.name = 'pm-theme'; input.value = theme.id;
+            input.checked = chosen === theme.id; input.id = `pm-theme-${theme.id}`; label.htmlFor = input.id;
+            const copy = el('span', 'pm-theme-copy');
+            copy.append(el('strong', '', theme.name), el('span', 'pm-muted', theme.description));
+            const swatches = el('span', 'pm-theme-swatches'); swatches.setAttribute('aria-hidden', 'true');
+            ['bg', 'surface', 'accent'].forEach(tone => swatches.append(el('i', `pm-swatch-${tone}`)));
+            label.append(input, copy, swatches); choices.append(label);
+            input.addEventListener('change', () => { if (input.checked) { chosen = theme.id; appearance.preview(chosen, reading); } });
+            if (input.checked) first = input;
+        });
+        function close() {
+            appearance.restore(); dialog.close(); dialog.remove(); dialogOpen = false;
+            if (trigger?.isConnected) trigger.focus();
+        }
+        const readingPanel = el('fieldset', 'pm-reading-controls');
+        readingPanel.append(el('legend', '', '阅读舒适度'));
+        function range(key, name, min, max, step, format) {
+            const row = el('div', 'pm-reading-control');
+            const label = el('label', '', name); label.htmlFor = `pm-reading-${key}`;
+            const value = el('output'); value.htmlFor = label.htmlFor;
+            const input = el('input'); input.type = 'range'; input.id = label.htmlFor;
+            input.min = min; input.max = max; input.step = step; input.value = reading[key];
+            function update() {
+                reading[key] = Number(input.value); value.textContent = format(reading[key]);
+                input.setAttribute('aria-valuetext', value.textContent); appearance.preview(chosen, reading);
+            }
+            value.textContent = format(reading[key]); input.setAttribute('aria-valuetext', value.textContent);
+            input.addEventListener('input', update); row.append(label, value, input); readingPanel.append(row);
+        }
+        range('fontSize', '正文字号', 14, 22, 1, value => `${value} px`);
+        range('lineHeight', '文字行距', 1.6, 2.2, 0.05, value => `${value.toFixed(2)} 倍`);
+        const sample = el('p', 'pm-reading-sample', '雨停以后，书页还留着夜的温度。\n“慢慢读，故事会等你。”');
+        readingPanel.append(sample);
+        const actions = el('div', 'pm-dialog-actions');
+        const save = el('button', 'pm-button pm-primary', '应用外观'); save.type = 'submit';
+        actions.append(button('取消', close), save);
+        form.append(heading, help, choices, readingPanel, actions); dialog.append(form);
+        form.addEventListener('submit', event => {
+            event.preventDefault();
+            const persisted = appearance.choose(chosen, reading); close();
+            notify(persisted ? '主题已应用，本浏览器会记住你的选择。' : '主题已应用；浏览器无法保存偏好，刷新后可能恢复原主题。');
+        });
+        dialog.addEventListener('cancel', event => { event.preventDefault(); close(); });
+        document.body.append(dialog); dialog.showModal(); first?.focus();
     }
     function showPassword(kind) {
         if (dialogOpen) return;
@@ -232,9 +294,16 @@ import { host } from './host.js';
     }
     function initialize() {
         if (ready) return; ready = true;
+        appearance = createThemePreference(host.account().handle, (id, reading) => {
+            document.body.dataset.pmTheme = id;
+            document.body.style.setProperty('--pm-reading-size', `${reading.fontSize}px`);
+            document.body.style.setProperty('--pm-reading-leading', String(reading.lineHeight));
+        });
         toolbar = el('header', 'pm-toolbar');
         const identity = el('div', 'pm-identity');
-        title = el('h1', 'pm-title'); identity.append(el('span', 'pm-eyebrow', 'PLAYERMODE · 对话'), title);
+        const identityTop = el('div', 'pm-identity-top');
+        identityTop.append(el('span', 'pm-eyebrow', 'PLAYERMODE · 对话'), button('切换主题', showThemes, 'pm-quiet pm-theme-trigger'));
+        title = el('h1', 'pm-title'); identity.append(identityTop, title);
         const actions = el('div', 'pm-actions');
         const newChat = button('＋ 新对话', newConversation);
         const browse = button('对话书架', showLibrary, 'pm-quiet');
@@ -250,7 +319,7 @@ import { host } from './host.js';
         document.body.append(toolbar, enter, status, library.root);
         const panel = el('section', 'pm-settings');
         settingsButton = button('设置／修改统一退出密码', () => showPassword('setup'));
-        panel.append(el('h3', '', 'PlayerMode 0.4.0'), el('p', '', '每个原生账户分别配置退出密码、开放角色与模型/世界书；登录密码由酒馆管理。'), settingsButton, button('开放角色与默认角色', () => { if (!configured) { notify('请先设置退出密码。'); return; } showPassword('roles'); }), button('原生账户管理', () => { const node = document.querySelector('#admin_button'); if (host.account().admin && node) node.click(); else notify('此操作需要原生管理员账户。'); }));
+        panel.append(el('h3', '', 'PlayerMode 0.5.0'), el('p', '', '每个原生账户分别配置退出密码、开放角色与模型/世界书；登录密码由酒馆管理。'), settingsButton, button('开放角色与默认角色', () => { if (!configured) { notify('请先设置退出密码。'); return; } showPassword('roles'); }), button('原生账户管理', () => { const node = document.querySelector('#admin_button'); if (host.account().admin && node) node.click(); else notify('此操作需要原生管理员账户。'); }));
         const settingsHost = document.querySelector(selectors.settings);
         if (settingsHost) settingsHost.append(panel); else console.warn('[PlayerMode] Settings host missing.');
         const value = context.extensionSettings.PlayerMode;
@@ -266,7 +335,7 @@ import { host } from './host.js';
                 event.preventDefault(); showPassword('exit');
             }
         }, true);
-        console.log('[PlayerMode] Initialized 0.4.0');
+        console.log('[PlayerMode] Initialized 0.5.0');
     }
     context.eventSource.on(context.eventTypes.APP_READY, initialize);
 })();

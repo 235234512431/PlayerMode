@@ -1,3 +1,11 @@
+# Final 0.5.0 status
+
+At the user’s explicit request, the final three-theme and reading-control changes were uploaded without validation. Earlier isolated tests applied to the two-theme implementation before reading controls. No browser visual QA, final regression run or 0.5.0 static audit was completed. Historical evidence below does not establish final-release verification.
+
+# PlayerMode 0.5.0 verification
+
+Existing isolated tests and added theme tests passed: preview/cancel, saved preference, account separation, unknown values, storage unavailable. User requested stopping further verification. Browser visual QA and 0.5.0 design audits were not completed. The previous release evidence below applies to 0.4.0 only.
+
 # PlayerMode 0.4.0 verification
 
 Date: 2026-09-11. Target native source examined read-only: SillyTavern 1.18.0.

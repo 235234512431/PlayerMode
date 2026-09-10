@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import { createCredential, verifyPassword } from './security.js';
 import { createSettingsStore, validSettings } from './settings.js';
 import { createNavigation, allowedCharacters } from './navigation.js';
+import { themes, createThemePreference } from './themes.js';
 const source = fs.readFileSync(new URL('./index.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '');
 const old = {version:1,allowAllCharacters:true,defaultAvatar:'test.png', credential:await createCredential('fixture-old')};
 const fresh = {version:1,allowAllCharacters:true,defaultAvatar:'test.png', credential:await createCredential('fixture-new')};
@@ -18,7 +19,7 @@ function boot(config=server) {
  const nodes=[], classes=new Set(), listeners=new Map();let nativeClicks=0, key;
  const document={activeElement:null};
  class Element {
-  constructor(tag){this.tag=tag;this.children=[];this.style={};this.dataset={};this.events={};this.value='';this.isConnected=true;this.classList={add(){}};nodes.push(this)}
+  constructor(tag){this.tag=tag;this.children=[];this.style={setProperty(){}};this.dataset={};this.events={};this.value='';this.isConnected=true;this.classList={add(){}};nodes.push(this)}
   append(...children){this.children.push(...children)}
   querySelector(){return null} replaceChildren(...children){this.children=children}
   addEventListener(n,f){this.events[n]=f}setAttribute(k,v){this[k]=v}removeAttribute(k){delete this[k]}
@@ -30,7 +31,7 @@ function boot(config=server) {
  document.querySelector=s=>s==='#option_start_new_chat'?{click(){nativeClicks++}}:body;
  document.addEventListener=(n,f)=>{key=f};
  const context={characters:[{name:'Test',avatar:'test.png'}],characterId:0,saveChat:async()=>{},selectCharacterById:async()=>{},openCharacterChat:async()=>{},name2:'Test',getRequestHeaders:()=>({}),extensionSettings:config?{PlayerMode:structuredClone(config)}:{},eventTypes:{APP_READY:'ready',SETTINGS_UPDATED:'saved',CHAT_CHANGED:'chat'},eventSource:{on(n,f){if(!listeners.has(n))listeners.set(n,new Set());listeners.get(n).add(f);if(n==='ready')f()},removeListener(n,f){listeners.get(n)?.delete(f)}},saveSettingsDebounced(){if(!rejectSave)server=structuredClone(context.extensionSettings.PlayerMode);listeners.get('saved')?.forEach(f=>f())}};
- const instance = vm.createContext({document,console:{log(){},warn(){}},crypto:globalThis.crypto,createCredential,verifyPassword,createSettingsStore,validSettings,createNavigation,allowedCharacters,host:{isGenerating:()=>false,account:()=>({enabled:true,name:'fixture',admin:true})},createLibrary:({el})=>({root:el('main'),show(){},cancel(){}}),setTimeout:()=>0,clearTimeout(){},SillyTavern:{getContext:()=>context}});
+ const instance = vm.createContext({document,console:{log(){},warn(){}},crypto:globalThis.crypto,createCredential,verifyPassword,createSettingsStore,validSettings,createNavigation,allowedCharacters,themes,createThemePreference,host:{isGenerating:()=>false,account:()=>({enabled:true,name:'fixture',admin:true})},createLibrary:({el})=>({root:el('main'),show(){},cancel(){}}),setTimeout:()=>0,clearTimeout(){},SillyTavern:{getContext:()=>context}});
  vm.runInContext(source,instance);
  return {nodes,classes,context,get nativeClicks(){return nativeClicks},
  button(text){return nodes.findLast(n=>n.tag==='button'&&n.textContent===text).click()},
@@ -94,3 +95,15 @@ pendingHistory.get('one.png')([{file_name:'stale-one'}]);await firstHistory;
 const more=shelf.root.querySelectorAll('button').find(n=>n.textContent==='加载更多对话');more.click();
 const names=shelf.root.querySelectorAll('strong').map(n=>n.textContent);assert.equal(names.length,13);assert(names.every(n=>n.startsWith('two-')));
 shelf.cancel();console.log('PASS: out-of-order history responses cannot contaminate another role or pagination.');
+// Themes persist only appearance, separated by native account; preview cancellation never saves.
+let painted, memory=new Map();
+const appearanceStorage={getItem:key=>memory.get(key),setItem:(key,value)=>memory.set(key,value)};
+let preference=createThemePreference('alice',id=>painted=id,()=>appearanceStorage);
+assert.equal(painted,'midnight');preference.preview('rain');assert.equal(painted,'rain');assert.equal(memory.size,0);
+preference.restore();assert.equal(painted,'midnight');assert(preference.choose('rain'));
+preference=createThemePreference('alice',id=>painted=id,()=>appearanceStorage);assert.equal(painted,'rain');
+createThemePreference('bob',id=>painted=id,()=>appearanceStorage);assert.equal(painted,'midnight');
+assert.throws(()=>preference.preview('unknown'),/未知/);
+const unavailable=createThemePreference('alice',id=>painted=id,()=>{throw Error('blocked storage')});assert.equal(painted,'midnight');assert.equal(unavailable.choose('rain'),false);assert.equal(painted,'rain');
+assert([...memory.keys()].every(key=>key.startsWith('PlayerMode.appearance.v1:')));
+console.log('PASS: theme preview/cancel, reload preference, per-account separation, invalid theme and unavailable storage fallback.');

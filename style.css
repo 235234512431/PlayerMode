@@ -1,8 +1,9 @@
 /* Token owner: style.css; rationale and mapping are recorded in DESIGN.md. */
-body.playermode-active, .pm-dialog, .pm-settings, .pm-enter, .pm-status {
+body.playermode-active, .pm-dialog, .pm-settings, .pm-enter, .pm-status, [data-pm-palette="midnight"] {
     --pm-bg: #111724; --pm-surface: #1B2434; --pm-border: #344158;
     --pm-text: #E9EDF5; --pm-muted: #AAB6CB; --pm-accent: #B6A7EA;
-    --pm-error: #ffb5b5; --pm-radius: 16px; --pm-header: 88px;
+    --pm-hover: #29334a; --pm-active: #344158; --pm-accent-hover: #c8bdf0; --pm-on-accent: #111724;
+    --pm-code: #0C111C; --pm-error: #ffb5b5; --pm-radius: 16px; --pm-header: 88px;
     --pm-font: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
     --pm-title-font: 'Songti SC', STSong, 'Noto Serif CJK SC', serif;
     --pm-z-header: 100; --pm-z-status: 200;
@@ -33,14 +34,14 @@ body.playermode-active :is(#top-bar, #top-settings-holder, #left-nav-panel, #rig
     background: var(--pm-surface); color: var(--pm-text); border: 1px solid var(--pm-border);
     font: 13px/1.4 var(--pm-font); cursor: pointer; transition: background .15s, border-color .15s;
 }
-.pm-button:hover:not(:disabled) { border-color: var(--pm-accent); background: #29334a; }
-.pm-button:active:not(:disabled) { background: #344158; }
+.pm-button:hover:not(:disabled) { border-color: var(--pm-accent); background: var(--pm-hover); }
+.pm-button:active:not(:disabled) { background: var(--pm-active); }
 .pm-button:disabled { cursor: wait; opacity: .6; }
 .pm-button:focus-visible, .pm-dialog input:focus-visible,
 body.playermode-active #send_textarea:focus-visible { outline: 2px solid var(--pm-accent); outline-offset: 3px; }
 .pm-quiet { background: transparent; color: var(--pm-muted); }
-.pm-primary { background: var(--pm-accent); color: #111724; border-color: var(--pm-accent); }
-.pm-primary:hover:not(:disabled) { background: #c8bdf0; color: #111724; }
+.pm-primary { background: var(--pm-accent); color: var(--pm-on-accent); border-color: var(--pm-accent); }
+.pm-primary:hover:not(:disabled) { background: var(--pm-accent-hover); color: var(--pm-on-accent); }
 .pm-enter { position: fixed; top: 8px; right: 8px; z-index: var(--pm-z-header); }
 .pm-settings { padding: 14px; color: inherit; font-family: var(--pm-font); }
 .pm-settings p { line-height: 1.7; }
@@ -65,7 +66,7 @@ body.playermode-active #chat .mes {
     box-shadow: none !important; width: 100% !important; box-sizing: border-box;
 }
 body.playermode-active #chat .mes[is_user="true"] { background: var(--pm-surface) !important; border-color: var(--pm-border) !important; }
-body.playermode-active #chat .mes_text { font: 16px/1.85 var(--pm-font); color: var(--pm-text); overflow-wrap: anywhere; }
+body.playermode-active #chat .mes_text { font: var(--pm-reading-size, 16px)/var(--pm-reading-leading, 1.85) var(--pm-font); color: var(--pm-text); overflow-wrap: anywhere; }
 body.playermode-active #chat .mes_text pre { max-width: 100%; overflow-x: auto; white-space: pre; }
 body.playermode-active #chat .mes_text img { max-width: 100%; height: auto; }
 body.playermode-active #chat .ch_name { color: var(--pm-accent); }
@@ -173,3 +174,62 @@ body.playermode-active.pm-browsing #sheld { display: none !important; }
 
 .pm-dialog > .pm-muted { margin: 16px 0; }
 .pm-dialog > .pm-error { margin: 12px 0; }
+
+/* Palette ownership: this block overrides semantic tokens, never native chat behavior. */
+body.playermode-active[data-pm-theme="rain"],
+body[data-pm-theme="rain"] :is(.pm-dialog, .pm-settings, .pm-enter, .pm-status),
+[data-pm-palette="rain"] {
+    --pm-bg: #121C1D; --pm-surface: #1E2B2B; --pm-border: #435957;
+    --pm-text: #E8E4D7; --pm-muted: #B3BFB5; --pm-accent: #D8B879;
+    --pm-hover: #2C3D3B; --pm-active: #354A46; --pm-accent-hover: #E7CA92;
+    --pm-on-accent: #121C1D; --pm-code: #0E1617; --pm-error: #FFB5B5;
+}
+.pm-identity { position: relative; }
+.pm-identity-top { padding-right: 88px; }
+.pm-theme-trigger { position: absolute; top: 0; right: 0; min-height: 44px; font-size: 11px; padding: 8px 10px; }
+.pm-title { padding-right: 88px; }
+.pm-theme-options { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 12px; }
+.pm-theme-options legend { padding: 0 0 10px; }
+.pm-theme-choice {
+    display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: start; gap: 12px;
+    padding: 16px; border: 1px solid var(--pm-border); border-radius: 14px;
+    background: var(--pm-surface); color: var(--pm-text); cursor: pointer;
+}
+.pm-theme-choice:hover { border-color: var(--pm-accent); }
+.pm-theme-choice:has(input:checked) { border-color: var(--pm-accent); box-shadow: inset 3px 0 var(--pm-accent); }
+.pm-theme-choice:active { background: var(--pm-hover); }
+.pm-theme-choice input { width: 18px; height: 18px; margin: 3px 0; padding: 0; accent-color: var(--pm-accent); }
+.pm-theme-copy { display: grid; gap: 6px; }
+.pm-theme-copy strong { font: 21px/1.4 var(--pm-title-font); }
+.pm-theme-swatches { grid-column: 2; display: flex; gap: 6px; }
+.pm-theme-swatches i { width: 26px; height: 6px; border: 1px solid var(--pm-border); border-radius: 2px; }
+.pm-swatch-bg { background: var(--pm-bg); } .pm-swatch-surface { background: var(--pm-surface); } .pm-swatch-accent { background: var(--pm-accent); }
+body.playermode-active #chat .mes_text :is(pre, code) { background-color: var(--pm-code); color: var(--pm-text); }
+body.playermode-active #chat .mes_text a { color: var(--pm-accent); text-decoration: underline; }
+body.playermode-active #chat .mes_text blockquote { color: var(--pm-muted); border-inline-start-color: var(--pm-accent); }
+/* Rain-night signature: a warm narrow book spine, leaving native portraits unfiltered. */
+body.playermode-active[data-pm-theme="rain"] .pm-character-cover { box-shadow: inset 4px 0 var(--pm-accent); }
+body.playermode-active[data-pm-theme="rain"] .pm-character-cover::after {
+    content: ''; position: absolute; inset: 16px; border: 1px solid var(--pm-border); pointer-events: none;
+}
+body.playermode-active[data-pm-theme="rain"] .pm-character-cover:has(img:not([hidden]))::after { inset: 0 auto 0 0; width: 4px; border: none; background: var(--pm-accent); }
+body.playermode-active[data-pm-theme="rain"] .pm-library-heading { border-inline-start: 2px solid var(--pm-accent); padding-inline-start: 18px; }
+@media (forced-colors: active) { .pm-theme-choice { border-color: ButtonText; } }
+
+body.playermode-active[data-pm-theme="letter"],
+body[data-pm-theme="letter"] :is(.pm-dialog, .pm-settings, .pm-enter, .pm-status),
+[data-pm-palette="letter"] {
+    --pm-bg: #EBEEE5; --pm-surface: #F6F7F0; --pm-border: #A4B0A4;
+    --pm-text: #2F3933; --pm-muted: #58665A; --pm-accent: #486448;
+    --pm-hover: #DCE4D6; --pm-active: #CFDAC8; --pm-accent-hover: #3B543B;
+    --pm-on-accent: #FFFFFF; --pm-code: #DDE4D8; --pm-error: #A32D38;
+}
+body.playermode-active[data-pm-theme="letter"] .pm-library-heading { border-bottom: 1px solid var(--pm-border); padding-bottom: 24px; }
+body.playermode-active[data-pm-theme="letter"] .pm-character-cover::after { content: ''; position: absolute; inset: 14px; border: 1px solid var(--pm-border); pointer-events: none; }
+body.playermode-active[data-pm-theme="letter"] .pm-connection::before { background: var(--pm-muted); }
+.pm-reading-controls { margin: 0; padding: 16px 0 0; border: 0; border-top: 1px solid var(--pm-border); min-width: 0; }
+.pm-reading-controls legend { padding: 0 8px 0 0; font-size: 13px; color: var(--pm-muted); }
+.pm-reading-control { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 16px; font-size: 13px; }
+.pm-reading-control output { color: var(--pm-muted); }
+.pm-reading-control input[type="range"] { grid-column: 1 / -1; width: 100%; height: 32px; margin: 0; padding: 0; border: none; cursor: pointer; accent-color: var(--pm-accent); background: transparent; }
+.pm-reading-sample { padding: 18px; margin: 0; border-inline-start: 2px solid var(--pm-accent); background: var(--pm-surface); color: var(--pm-text); font: var(--pm-reading-size, 16px)/var(--pm-reading-leading, 1.85) var(--pm-font); white-space: pre-line; overflow-wrap: anywhere; }
