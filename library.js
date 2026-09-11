@@ -1,4 +1,5 @@
 import { allowedCharacters } from './navigation.js';
+import { sortHistory, historyTimeLabel, messageCount } from './history.js';
 import { storyArt } from './motifs.js';
 
 export function createLibrary({ el, button, getContext, getSettings, getAccount = () => '', navigation, onError, onChat, onResume }) {
@@ -12,6 +13,7 @@ export function createLibrary({ el, button, getContext, getSettings, getAccount 
         if (Array.isArray(saved)) favorites = new Set(saved.filter(value => typeof value === 'string'));
     } catch { /* Collection remains available within this page. */ }
     const historyQueries = new Map();
+    const historyOrders = new Map();
     function searchControl(id, name, placeholder, value, onChange) {
         const node = el('div', 'pm-shelf-search'); node.append(storyArt('search'));
         const label = el('label', 'pm-sr-only', name); label.htmlFor = id;
@@ -144,10 +146,21 @@ export function createLibrary({ el, button, getContext, getSettings, getAccount 
         const search = searchControl('pm-history-search', '对话搜索', '搜索对话名或预览文字', historyQuery, value => {
             historyQuery = value; historyQueries.set(avatar, value); page = 0; render();
         });
+        let order = historyOrders.get(avatar) || 'recent';
+        const sorting = el('div', 'pm-collection-filters pm-history-order');
+        sorting.setAttribute('role', 'group'); sorting.setAttribute('aria-label', '对话排序');
+        const sortButtons = [];
+        for (const [value, label] of [['recent', '最近对话'], ['oldest', '最早对话'], ['longest', '消息最多']]) {
+            const control = button(label, () => {
+                if (busy) return;
+                order = value; historyOrders.set(avatar, value); page = 0; render();
+            }, 'pm-collection-filter');
+            sortButtons.push({ value, control }); sorting.append(control);
+        }
         const count = el('p', 'pm-shelf-count'); count.setAttribute('role', 'status');
-        const hint = el('p', 'pm-muted pm-history-hint', '只搜索本角色的对话名与预览，不搜索完整聊天。');
+        const hint = el('p', 'pm-muted pm-history-hint', '只搜索本角色的对话名与预览，不搜索完整聊天；时间按当前设备时区显示。');
         hint.id = 'pm-history-search-hint'; search.querySelectorAll('input')[0].setAttribute('aria-describedby', hint.id);
-        tools.append(search, count, hint); root.append(tools);
+        tools.append(search, sorting, count, hint); root.append(tools);
         const list = el('div', 'pm-history-list'); const message = el('p', 'pm-muted', '正在读取你的对话…');
         message.setAttribute('role', 'status'); list.append(message); root.append(list);
         const controller = new AbortController(); request = controller;
@@ -156,14 +169,15 @@ export function createLibrary({ el, button, getContext, getSettings, getAccount 
             list.replaceChildren();
             if (!rows.length) { list.append(el('p', 'pm-empty', '故事还没开始。点击上方“新建对话”，写下与这个角色的第一句话。')); return; }
             const needle = historyQuery.trim().toLocaleLowerCase('zh-CN');
-            const matching = rows.filter(row => !needle || [row.file_name, row.preview_message].some(value => typeof value === 'string' && value.toLocaleLowerCase('zh-CN').includes(needle)));
+            sortButtons.forEach(({ value, control }) => control.setAttribute('aria-pressed', String(value === order)));
+            const matching = sortHistory(rows.filter(row => !needle || [row.file_name, row.preview_message].some(value => typeof value === 'string' && value.toLocaleLowerCase('zh-CN').includes(needle))), order);
             const visibleCount = Math.min(matching.length, (page + 1) * pageSize);
             count.textContent = needle ? `找到 ${matching.length} 段对话 · 已显示 ${visibleCount} 段` : `共 ${rows.length} 段对话 · 已显示 ${visibleCount} 段`;
             if (!matching.length) { list.append(el('p', 'pm-empty', '这一页暂时没有线索。换个关键词，或清除搜索再看看。')); return; }
             matching.slice(0, (page + 1) * pageSize).forEach(row => {
                 const item = button('', () => act(() => navigation.openChat(avatar, row.file_name)), 'pm-history-item');
                 const copy = el('span', 'pm-history-copy');
-                copy.append(el('strong', '', row.file_name), el('span', 'pm-muted pm-preview', row.preview_message || '暂无预览'), el('span', 'pm-history-meta', `${row.message_count ?? 0} 条消息`));
+                copy.append(el('strong', '', row.file_name), el('span', 'pm-muted pm-preview', row.preview_message || '暂无预览'), el('span', 'pm-history-meta', `${messageCount(row.message_count)} 条消息 · ${historyTimeLabel(row.last_mes)}`));
                 item.append(storyArt('bookmark'), copy, storyArt('arrow')); list.append(item);
             });
             if (matching.length > (page + 1) * pageSize) list.append(button('加载更多对话', () => { page++; render(); }));

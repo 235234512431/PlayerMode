@@ -1,3 +1,9 @@
+# PlayerMode 0.6.3 status
+
+Date: 2026-09-11. Added history ordering and last-conversation timestamps.
+
+The existing `tests.mjs` suite was run once early in this iteration and passed. The user then explicitly requested no further tests and direct publishing. No targeted sorting/date tests, browser inspection, new static audit or DESIGN.md lint were performed for this release. Earlier release evidence below does not validate the added ordering/time behavior. Remote file readback is delivery verification only. No installed SillyTavern files, real chats or model settings were changed.
+
 # PlayerMode 0.6.2 verification
 
 Date: 2026-09-11. Added local history name/preview filtering and shared IME-safe search controls.
