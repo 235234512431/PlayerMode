@@ -322,7 +322,7 @@ import { themes, createThemePreference } from './themes.js';
         document.body.append(toolbar, enter, status, library.root);
         const panel = el('section', 'pm-settings');
         settingsButton = button('设置／修改统一退出密码', () => showPassword('setup'));
-        panel.append(el('h3', '', 'PlayerMode 0.6.1'), el('p', '', '每个原生账户分别配置退出密码、开放角色与模型/世界书；登录密码由酒馆管理。'), settingsButton, button('开放角色与默认角色', () => { if (!configured) { notify('请先设置退出密码。'); return; } showPassword('roles'); }), button('原生账户管理', () => { const node = document.querySelector('#admin_button'); if (host.account().admin && node) node.click(); else notify('此操作需要原生管理员账户。'); }));
+        panel.append(el('h3', '', 'PlayerMode 0.6.2'), el('p', '', '每个原生账户分别配置退出密码、开放角色与模型/世界书；登录密码由酒馆管理。'), settingsButton, button('开放角色与默认角色', () => { if (!configured) { notify('请先设置退出密码。'); return; } showPassword('roles'); }), button('原生账户管理', () => { const node = document.querySelector('#admin_button'); if (host.account().admin && node) node.click(); else notify('此操作需要原生管理员账户。'); }));
         const settingsHost = document.querySelector(selectors.settings);
         if (settingsHost) settingsHost.append(panel); else console.warn('[PlayerMode] Settings host missing.');
         const value = context.extensionSettings.PlayerMode;
@@ -338,7 +338,7 @@ import { themes, createThemePreference } from './themes.js';
                 event.preventDefault(); showPassword('exit');
             }
         }, true);
-        console.log('[PlayerMode] Initialized 0.6.1');
+        console.log('[PlayerMode] Initialized 0.6.2');
     }
     context.eventSource.on(context.eventTypes.APP_READY, initialize);
 })();

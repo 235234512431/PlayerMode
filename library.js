@@ -11,6 +11,29 @@ export function createLibrary({ el, button, getContext, getSettings, getAccount 
         const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
         if (Array.isArray(saved)) favorites = new Set(saved.filter(value => typeof value === 'string'));
     } catch { /* Collection remains available within this page. */ }
+    const historyQueries = new Map();
+    function searchControl(id, name, placeholder, value, onChange) {
+        const node = el('div', 'pm-shelf-search'); node.append(storyArt('search'));
+        const label = el('label', 'pm-sr-only', name); label.htmlFor = id;
+        const input = el('input'); input.id = id; input.type = 'search'; input.placeholder = placeholder;
+        input.value = value; input.autocomplete = 'off';
+        let composing = false;
+        const clearSearch = button('清除', () => {
+            if (busy) return;
+            input.value = ''; composing = false; update(); input.focus();
+        }, 'pm-search-clear');
+        clearSearch.setAttribute('aria-label', `清除${name}`);
+        clearSearch.hidden = !value;
+        function update() {
+            clearSearch.hidden = !input.value;
+            if (!composing && !busy) onChange(input.value);
+        }
+        input.addEventListener('compositionstart', () => { composing = true; });
+        input.addEventListener('compositionend', () => { composing = false; update(); });
+        input.addEventListener('input', update);
+        node.append(label, input, clearSearch);
+        return node;
+    }
     function clear() { request?.abort(); request = null; chosen = null; root.replaceChildren(); root.scrollTop = 0; }
     function heading(name, description, illustration = false) {
         const node = el('div', `pm-library-heading${illustration ? ' pm-library-welcome' : ''}`);
@@ -32,7 +55,7 @@ export function createLibrary({ el, button, getContext, getSettings, getAccount 
     async function act(task) {
         if (busy) return;
         busy = true; root.setAttribute('aria-busy', 'true');
-        const controls = [...root.querySelectorAll('button')]; controls.forEach(node => { node.disabled = true; });
+        const controls = [...root.querySelectorAll('button, input')]; controls.forEach(node => { node.disabled = true; });
         try { if (await task() !== false) onChat(); }
         catch (error) { onError(error.message); }
         finally { busy = false; root.removeAttribute('aria-busy'); controls.forEach(node => { node.disabled = false; }); }
@@ -62,14 +85,8 @@ export function createLibrary({ el, button, getContext, getSettings, getAccount 
         const all = button(`全部角色 · ${cards.length}`, () => { favoritesOnly = false; render(); }, 'pm-collection-filter');
         const pinned = button('我的收藏', () => { favoritesOnly = true; render(); }, 'pm-collection-filter');
         tabs.append(all, pinned);
-        const search = el('div', 'pm-shelf-search'); search.append(storyArt('search'));
-        const label = el('label', 'pm-sr-only', '搜索角色'); label.htmlFor = 'pm-role-search';
-        const input = el('input'); input.id = label.htmlFor; input.type = 'search'; input.placeholder = '寻找一位角色'; input.value = query;
-        input.autocomplete = 'off';
-        const clearSearch = button('清除', () => { query = ''; input.value = ''; render(); input.focus(); }, 'pm-search-clear');
-        clearSearch.setAttribute('aria-label', '清除角色搜索');
-        input.addEventListener('input', () => { query = input.value; render(); });
-        search.append(label, input, clearSearch); tools.append(tabs, search); root.append(tools);
+        const search = searchControl('pm-role-search', '角色搜索', '寻找一位角色', query, value => { query = value; render(); });
+        tools.append(tabs, search); root.append(tools);
         const result = el('p', 'pm-shelf-count'); result.setAttribute('role', 'status'); root.append(result);
         const grid = el('div', 'pm-character-grid'); root.append(grid);
         function render() {
@@ -77,7 +94,7 @@ export function createLibrary({ el, button, getContext, getSettings, getAccount 
             const matching = cards.filter(card => (!favoritesOnly || favorites.has(card.avatar)) && (!needle || card.name.toLocaleLowerCase('zh-CN').includes(needle)));
             all.setAttribute('aria-pressed', String(!favoritesOnly)); pinned.setAttribute('aria-pressed', String(favoritesOnly));
             pinned.textContent = `我的收藏 · ${cards.filter(card => favorites.has(card.avatar)).length}`;
-            clearSearch.hidden = !query; result.textContent = needle ? `找到 ${matching.length} 位角色` : `${matching.length} 段故事，等你翻开`;
+            result.textContent = needle ? `找到 ${matching.length} 位角色` : `${matching.length} 段故事，等你翻开`;
             grid.replaceChildren();
             if (!matching.length) {
                 grid.append(el('p', 'pm-empty', needle ? '没有找到这位角色。换个名字，或清除搜索再看看。' : '还没有收藏。点击角色封面上的书签，下次更快找到。'));
@@ -122,6 +139,15 @@ export function createLibrary({ el, button, getContext, getSettings, getAccount 
         const header = heading(card.name, '对话会留下痕迹。选一段继续，或另起一页。'); header.title.focus();
         const newChat = button('为此角色新建对话', () => act(() => navigation.newChat(avatar)), 'pm-primary');
         header.copy.append(newChat);
+        let historyQuery = historyQueries.get(avatar) || '';
+        const tools = el('div', 'pm-history-tools'); tools.hidden = true;
+        const search = searchControl('pm-history-search', '对话搜索', '搜索对话名或预览文字', historyQuery, value => {
+            historyQuery = value; historyQueries.set(avatar, value); page = 0; render();
+        });
+        const count = el('p', 'pm-shelf-count'); count.setAttribute('role', 'status');
+        const hint = el('p', 'pm-muted pm-history-hint', '只搜索本角色的对话名与预览，不搜索完整聊天。');
+        hint.id = 'pm-history-search-hint'; search.querySelectorAll('input')[0].setAttribute('aria-describedby', hint.id);
+        tools.append(search, count, hint); root.append(tools);
         const list = el('div', 'pm-history-list'); const message = el('p', 'pm-muted', '正在读取你的对话…');
         message.setAttribute('role', 'status'); list.append(message); root.append(list);
         const controller = new AbortController(); request = controller;
@@ -129,18 +155,23 @@ export function createLibrary({ el, button, getContext, getSettings, getAccount 
         function render() {
             list.replaceChildren();
             if (!rows.length) { list.append(el('p', 'pm-empty', '故事还没开始。点击上方“新建对话”，写下与这个角色的第一句话。')); return; }
-            rows.slice(0, (page + 1) * pageSize).forEach(row => {
+            const needle = historyQuery.trim().toLocaleLowerCase('zh-CN');
+            const matching = rows.filter(row => !needle || [row.file_name, row.preview_message].some(value => typeof value === 'string' && value.toLocaleLowerCase('zh-CN').includes(needle)));
+            const visibleCount = Math.min(matching.length, (page + 1) * pageSize);
+            count.textContent = needle ? `找到 ${matching.length} 段对话 · 已显示 ${visibleCount} 段` : `共 ${rows.length} 段对话 · 已显示 ${visibleCount} 段`;
+            if (!matching.length) { list.append(el('p', 'pm-empty', '这一页暂时没有线索。换个关键词，或清除搜索再看看。')); return; }
+            matching.slice(0, (page + 1) * pageSize).forEach(row => {
                 const item = button('', () => act(() => navigation.openChat(avatar, row.file_name)), 'pm-history-item');
                 const copy = el('span', 'pm-history-copy');
                 copy.append(el('strong', '', row.file_name), el('span', 'pm-muted pm-preview', row.preview_message || '暂无预览'), el('span', 'pm-history-meta', `${row.message_count ?? 0} 条消息`));
                 item.append(storyArt('bookmark'), copy, storyArt('arrow')); list.append(item);
             });
-            if (rows.length > (page + 1) * pageSize) list.append(button('加载更多对话', () => { page++; render(); }));
+            if (matching.length > (page + 1) * pageSize) list.append(button('加载更多对话', () => { page++; render(); }));
         }
         try {
             const received = await navigation.history(avatar, controller.signal);
             if (request !== controller || chosen !== avatar) return;
-            rows = received; render();
+            rows = received; tools.hidden = !rows.length; render();
         } catch (error) {
             if (request !== controller) return;
             list.replaceChildren(el('p', 'pm-error', controller.signal.reason === 'timeout' ? '读取超时，请重试。' : error.message), button('重试', () => showHistory(avatar)));

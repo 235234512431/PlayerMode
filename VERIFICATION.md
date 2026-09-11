@@ -1,3 +1,13 @@
+# PlayerMode 0.6.2 verification
+
+Date: 2026-09-11. Added local history name/preview filtering and shared IME-safe search controls.
+
+- `node tests.mjs` passed, including added preview/title matching, case folding, unfinished IME composition, no-results, clear/page reset and the existing stale-response regression.
+- `node navigation-tests.mjs` passed all 16 cases.
+- Isolated mock-host browser: role history loads, preview text finds the expected row, an unmatched query displays recovery copy, clearing restores rows and input focus. Desktop and 390×600 layouts checked; existing Fugou theme remains consistent with the shelf.
+- Frontend Design Premium strict audit and DESIGN.md lint: zero errors or warnings.
+- This release does not add remote keyword queries or change native chat operations. Failure/empty/loading behavior remains the existing flow; real native account isolation, model/worldbook flows and physical IME/soft-keyboard behavior were not newly verified. The IME regression uses simulated composition events in unit tests.
+
 # PlayerMode 0.6.1 verification
 
 Date: 2026-09-11. Target native source examined read-only: SillyTavern 1.18.0. Checks use the standalone extension and an isolated mock host; the installed SillyTavern was not started or modified.

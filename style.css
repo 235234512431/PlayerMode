@@ -351,3 +351,9 @@ body.playermode-active[data-pm-theme="fugou"] #send_form { border-radius: 5px !i
     .pm-theme-header .pm-muted { font-size: 11px; margin-top: 2px; }
     .pm-theme-dialog .pm-dialog-actions { padding-block: 8px; }
 }
+
+/* History discovery shares the shelf search without adding another panel. */
+.pm-history-tools { margin: 24px 0 16px; }
+.pm-history-tools .pm-shelf-search { max-width: 440px; }
+.pm-history-tools .pm-shelf-count { margin: 12px 0 4px; }
+.pm-history-hint { margin: 0; font-size: 12px; line-height: 1.7; }
