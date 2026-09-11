@@ -33,7 +33,7 @@ export function createLibrary({ el, button, getContext, getSettings, getAccount 
         if (busy) return;
         busy = true; root.setAttribute('aria-busy', 'true');
         const controls = [...root.querySelectorAll('button')]; controls.forEach(node => { node.disabled = true; });
-        try { await task(); onChat(); }
+        try { if (await task() !== false) onChat(); }
         catch (error) { onError(error.message); }
         finally { busy = false; root.removeAttribute('aria-busy'); controls.forEach(node => { node.disabled = false; }); }
     }

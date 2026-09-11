@@ -322,3 +322,32 @@ body.playermode-active[data-pm-theme="fugou"] .pm-character-caption > .pm-eyebro
 body.playermode-active[data-pm-theme="fugou"] #chat .mes[is_user="true"] { border-radius: 3px !important; border-inline-start: 3px solid var(--pm-accent) !important; }
 body.playermode-active[data-pm-theme="fugou"] #chat .ch_name { font-family: 'Kaiti SC', STKaiti, var(--pm-title-font); }
 body.playermode-active[data-pm-theme="fugou"] #send_form { border-radius: 5px !important; }
+
+/* 0.6.1: keep confirmation and escape routes outside the long theme scroller. */
+.pm-theme-dialog { width: min(640px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 0; overflow: hidden; }
+.pm-theme-form { max-height: calc(100dvh - 26px); min-height: 0; gap: 0; }
+.pm-theme-header { flex: 0 0 auto; padding: 20px 24px 16px; }
+.pm-dialog-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pm-dialog-title-row h2 { min-width: 0; }
+.pm-dialog-dismiss { flex: 0 0 44px; min-height: 44px; font-size: 24px; line-height: 1; background: transparent; }
+.pm-theme-header .pm-muted { margin-top: 8px; }
+.pm-theme-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: 0 24px 20px; }
+.pm-theme-dialog .pm-theme-options { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 24px; }
+.pm-theme-dialog .pm-dialog-actions { flex: 0 0 auto; padding: 14px 24px max(14px, env(safe-area-inset-bottom)); border-top: 1px solid var(--pm-border); background: var(--pm-bg); }
+.pm-theme-dialog .pm-dialog-actions .pm-button { min-height: 44px; }
+.pm-theme-dialog .pm-theme-copy strong { font-size: 19px; }
+.pm-theme-scroll { scrollbar-width: thin; scrollbar-color: var(--pm-border) var(--pm-bg); }
+.pm-theme-scroll::-webkit-scrollbar { width: 10px; }
+.pm-theme-scroll::-webkit-scrollbar-thumb { background: var(--pm-border); border-radius: 8px; }
+@media (max-width: 520px) {
+    .pm-theme-dialog .pm-theme-options { grid-template-columns: 1fr; }
+    .pm-theme-header { padding: 12px 16px; }
+    .pm-theme-scroll { padding: 0 16px 16px; }
+    .pm-theme-dialog .pm-dialog-actions { padding-inline: 16px; }
+    .pm-dialog-title-row h2 { font-size: 23px; }
+}
+@media (max-height: 460px) {
+    .pm-theme-header { padding-block: 8px; }
+    .pm-theme-header .pm-muted { font-size: 11px; margin-top: 2px; }
+    .pm-theme-dialog .pm-dialog-actions { padding-block: 8px; }
+}

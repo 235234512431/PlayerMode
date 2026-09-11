@@ -19,11 +19,7 @@ import { themes, createThemePreference } from './themes.js';
     let toolbar, title, exit, enter, settingsButton, status, library, accountLabel, connectionLabel, appearance;
     const getContext = () => globalThis.SillyTavern.getContext();
     const getSettings = () => getContext().extensionSettings.PlayerMode;
-    const navigation = createNavigation(getContext, host.isGenerating, getSettings, () => {
-        const native = document.querySelector(selectors.newChat);
-        if (!native) throw new Error('找不到原生新对话入口，请检查版本。');
-        native.click();
-    });
+    const navigation = createNavigation(getContext, host.isGenerating, getSettings, beforeCreate => host.newChat(beforeCreate));
     const el = (tag, className, text) => {
         const node = document.createElement(tag);
         if (className) node.className = className;
@@ -86,7 +82,8 @@ import { themes, createThemePreference } from './themes.js';
             checkDraft();
             const avatar = !library.root.hidden ? getSettings()?.defaultAvatar : currentCard()?.avatar || getSettings()?.defaultAvatar;
             if (!avatar) { showLibrary(); return; }
-            await navigation.newChat(avatar); hideLibrary(); updateTitle();
+            if (await navigation.newChat(avatar) !== false) hideLibrary();
+            updateTitle();
         } catch (error) { notify(error.message); }
     }
     function switchAccount() {
@@ -125,10 +122,10 @@ import { themes, createThemePreference } from './themes.js';
         if (dialogOpen) return;
         dialogOpen = true;
         const trigger = document.activeElement;
-        const dialog = el('dialog', 'pm-dialog');
-        const form = el('form', 'pm-form'); form.noValidate = true;
+        const dialog = el('dialog', 'pm-dialog pm-theme-dialog');
+        const form = el('form', 'pm-form pm-theme-form'); form.noValidate = true;
         const heading = el('h2', '', '选择故事的光线'); heading.id = 'pm-theme-title';
-        const help = el('p', 'pm-muted', '选择后即时预览。只记住本浏览器中当前账户的外观。'); help.id = 'pm-theme-help';
+        const help = el('p', 'pm-muted', '选择后先预览，点击“应用外观”保存；取消会恢复原外观。'); help.id = 'pm-theme-help';
         dialog.setAttribute('aria-labelledby', heading.id); dialog.setAttribute('aria-describedby', help.id);
         const choices = el('fieldset', 'pm-theme-options');
         choices.append(el('legend', 'pm-muted', '界面主题'));
@@ -173,7 +170,13 @@ import { themes, createThemePreference } from './themes.js';
         const actions = el('div', 'pm-dialog-actions');
         const save = el('button', 'pm-button pm-primary', '应用外观'); save.type = 'submit';
         actions.append(button('取消', close), save);
-        form.append(heading, help, choices, readingPanel, actions); dialog.append(form);
+        const header = el('div', 'pm-theme-header');
+        const titleRow = el('div', 'pm-dialog-title-row');
+        const dismiss = button('×', close, 'pm-dialog-dismiss');
+        dismiss.setAttribute('aria-label', '取消并关闭外观设置');
+        titleRow.append(heading, dismiss); header.append(titleRow, help);
+        const content = el('div', 'pm-theme-scroll'); content.append(choices, readingPanel);
+        form.append(header, content, actions); dialog.append(form);
         form.addEventListener('submit', event => {
             event.preventDefault();
             const persisted = appearance.choose(chosen, reading); close();
@@ -315,11 +318,11 @@ import { themes, createThemePreference } from './themes.js';
         identity.append(accountLabel, connectionLabel);
         status = el('div', 'pm-status'); status.setAttribute('role', 'status');
         enter = button('进入玩家模式', () => setMode(true)); enter.classList.add('pm-enter');
-        library = createLibrary({ el, button, getContext, getSettings, getAccount: () => host.account().handle, onResume: () => { hideLibrary(); updateTitle(); }, navigation: { ...navigation, newChat: async avatar => { checkDraft(); await navigation.newChat(avatar); }, openChat: async (avatar, file) => { checkDraft(); await navigation.openChat(avatar, file); } }, onError: notify, onChat: () => { hideLibrary(); updateTitle(); } });
+        library = createLibrary({ el, button, getContext, getSettings, getAccount: () => host.account().handle, onResume: () => { hideLibrary(); updateTitle(); }, navigation: { ...navigation, newChat: async avatar => { checkDraft(); return navigation.newChat(avatar); }, openChat: async (avatar, file) => { checkDraft(); return navigation.openChat(avatar, file); } }, onError: notify, onChat: () => { hideLibrary(); updateTitle(); } });
         document.body.append(toolbar, enter, status, library.root);
         const panel = el('section', 'pm-settings');
         settingsButton = button('设置／修改统一退出密码', () => showPassword('setup'));
-        panel.append(el('h3', '', 'PlayerMode 0.6.0'), el('p', '', '每个原生账户分别配置退出密码、开放角色与模型/世界书；登录密码由酒馆管理。'), settingsButton, button('开放角色与默认角色', () => { if (!configured) { notify('请先设置退出密码。'); return; } showPassword('roles'); }), button('原生账户管理', () => { const node = document.querySelector('#admin_button'); if (host.account().admin && node) node.click(); else notify('此操作需要原生管理员账户。'); }));
+        panel.append(el('h3', '', 'PlayerMode 0.6.1'), el('p', '', '每个原生账户分别配置退出密码、开放角色与模型/世界书；登录密码由酒馆管理。'), settingsButton, button('开放角色与默认角色', () => { if (!configured) { notify('请先设置退出密码。'); return; } showPassword('roles'); }), button('原生账户管理', () => { const node = document.querySelector('#admin_button'); if (host.account().admin && node) node.click(); else notify('此操作需要原生管理员账户。'); }));
         const settingsHost = document.querySelector(selectors.settings);
         if (settingsHost) settingsHost.append(panel); else console.warn('[PlayerMode] Settings host missing.');
         const value = context.extensionSettings.PlayerMode;
@@ -335,7 +338,7 @@ import { themes, createThemePreference } from './themes.js';
                 event.preventDefault(); showPassword('exit');
             }
         }, true);
-        console.log('[PlayerMode] Initialized 0.6.0');
+        console.log('[PlayerMode] Initialized 0.6.1');
     }
     context.eventSource.on(context.eventTypes.APP_READY, initialize);
 })();
